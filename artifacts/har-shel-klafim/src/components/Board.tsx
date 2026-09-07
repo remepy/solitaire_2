@@ -136,11 +136,16 @@ export function GameBoard() {
     if (!stage) return;
     // Measure the content box inside the safe-area padding so the board
     // always fits between hardware intrusions (Dynamic Island, home
-    // indicator) instead of scaling to the raw screen size.
+    // indicator) instead of scaling to the raw screen size. A small
+    // breathing margin keeps the board visually off the device edges;
+    // at ~8px per side the scale drops only ~2%, so hit targets stay
+    // effectively the same physical size.
+    const EDGE_MARGIN = 8;
     const observer = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
-      const availableW = Math.min(width, 932);
-      setScale(Math.min(availableW / 844, height / 390));
+      const availableW = Math.min(Math.max(0, width - EDGE_MARGIN * 2), 932);
+      const availableH = Math.max(0, height - EDGE_MARGIN * 2);
+      setScale(Math.min(availableW / 844, availableH / 390));
     });
     observer.observe(stage);
     return () => observer.disconnect();
