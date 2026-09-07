@@ -256,25 +256,27 @@ export function GameBoard() {
           </button>
         </div>
         
-        {/* Tableau cards use their physical index as identity; card codes repeat by rank/suit. */}
-        {game.tableau.map((code, index) => {
-          const status = displayStatuses[index];
-          if (status === "played") return null;
-          const position = getCardPos(index);
-          const isHinted = index === hintIdx;
-          return (
-            <PlayingCard
-              key={`tableau-${index}`}
-              code={code}
-              status={status}
-              onClick={withDebounce(() => game.playCard(index))}
-              zIndex={index}
-              left={position.left}
-              top={position.top}
-              className={isHinted ? "ring-4 ring-primary ring-offset-2 ring-offset-background scale-[1.05]" : ""}
-            />
-          );
-        })}
+        {/* The tableau is a physical, never-mirrored coordinate system. */}
+        <div className="absolute inset-0" dir="ltr">
+          {game.tableau.map((code, index) => {
+            const status = displayStatuses[index];
+            if (status === "played") return null;
+            const position = getCardPos(index);
+            const isHinted = index === hintIdx;
+            return (
+              <PlayingCard
+                key={`tableau-${index}`}
+                code={code}
+                status={status}
+                onClick={withDebounce(() => game.playCard(index))}
+                zIndex={index}
+                left={position.left}
+                top={position.top}
+                className={isHinted ? "ring-4 ring-primary ring-offset-2 ring-offset-background scale-[1.05]" : ""}
+              />
+            );
+          })}
+        </div>
 
         {/* Show a subtle three-card stack, fully inside the dashed stock target. */}
         {game.stock.slice(-3).map((code, visibleIndex, visibleStock) => {
