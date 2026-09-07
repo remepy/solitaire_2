@@ -311,10 +311,14 @@ export function GameBoard() {
             data-testid="stock-area"
             aria-label={t(lang, "a11y.stock", { n: stockCount })}
             role="button"
+          />
+
+          <div
+            className="absolute top-0 z-[300] bg-primary text-primary-foreground font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-md pointer-events-none"
+            style={{ left: lang === "he" ? 774 : 112 }}
+            aria-hidden="true"
           >
-            <div className="absolute -top-3 -right-3 bg-primary text-primary-foreground font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-md z-[200]">
-              {stockCount}
-            </div>
+            {stockCount}
           </div>
           
           {/* Pills */}
