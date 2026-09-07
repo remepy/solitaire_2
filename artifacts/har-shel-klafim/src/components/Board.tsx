@@ -234,7 +234,11 @@ export function GameBoard() {
           "relative w-[844px] h-[390px] origin-center",
           isPortrait ? "pointer-events-none" : ""
         )}
-        style={{ transform: `scale(${scale})` }}
+        // translateX is applied in screen space (before the scale), so the
+        // board shifts a true 20px left for optical balance against the
+        // device's right-edge intrusion. Content has ~46px clearance on the
+        // left, so nothing clips.
+        style={{ transform: `translateX(-20px) scale(${scale})` }}
         aria-hidden={isPortrait}
         inert={isPortrait ? true : undefined}
       >
