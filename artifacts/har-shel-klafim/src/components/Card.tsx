@@ -17,10 +17,10 @@ export interface PlayingCardProps {
 }
 
 const suitSymbols: Record<string, { glyph: string; color: string }> = {
-  S: { glyph: "♠", color: "text-slate-900 dark:text-slate-100" },
-  H: { glyph: "♥", color: "text-red-600 dark:text-red-500" },
-  D: { glyph: "♦", color: "text-red-600 dark:text-red-500" },
-  C: { glyph: "♣", color: "text-slate-900 dark:text-slate-100" },
+  S: { glyph: "♠", color: "text-slate-950" },
+  H: { glyph: "♥", color: "text-red-600" },
+  D: { glyph: "♦", color: "text-red-600" },
+  C: { glyph: "♣", color: "text-slate-950" },
 };
 
 function getCardDetails(code: string, lang: "he" | "en") {
