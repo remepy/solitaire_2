@@ -91,10 +91,8 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
 
   return (
     <motion.div 
-      initial={{ left, top, rotateY: !reducedMotion && !isFaceUp ? 180 : 0, scale: 1 }}
+      initial={{ rotateY: !reducedMotion && !isFaceUp ? 180 : 0, scale: 1 }}
       animate={{ 
-        left, 
-        top,
         rotateY: !reducedMotion && !isFaceUp ? 180 : 0,
         scale: isWaste ? (72/70) : 1, // small visual bump for waste
       }}
@@ -107,10 +105,14 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
         className
       )}
       style={{
+        left,
+        top,
         zIndex: zIndex,
         transformStyle: "preserve-3d",
-        perspective: "1000px"
+        perspective: "1000px",
+        direction: "ltr",
       }}
+      dir="ltr"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleTouchStart}

@@ -205,9 +205,7 @@ export function GameBoard() {
   // This prevents a fully exposed card from remaining visually face-down.
   const displayStatuses = computeUncovered(game.tableauStatus);
 
-  // Framer Motion resolves the animated horizontal card anchor from the
-  // inline-end edge in RTL, so include the card width to land at x=720.
-  const stockLeft = lang === "he" ? 790 : 54;
+  const stockLeft = lang === "he" ? 720 : 54;
   const stockTop = 259;
   
   const wasteLeft = lang === "he" ? 596 : 176;
@@ -269,7 +267,10 @@ export function GameBoard() {
                 code={code}
                 status={status}
                 onClick={withDebounce(() => game.playCard(index))}
-                zIndex={index}
+                // Once a card is logically uncovered, it must render above
+                // every remaining face-down layer. Preserve physical order
+                // within each status group using the tableau index.
+                zIndex={status === "uncovered" ? 100 + index : index}
                 left={position.left}
                 top={position.top}
                 className={isHinted ? "ring-4 ring-primary ring-offset-2 ring-offset-background scale-[1.05]" : ""}
