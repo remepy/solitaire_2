@@ -111,16 +111,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           {/* Toggles */}
           <div className="flex flex-col gap-4">
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="font-semibold">{t(lang, "settings.glow")}</span>
-              <input 
-                type="checkbox" 
-                className="w-6 h-6 accent-primary"
-                checked={settings.glow}
-                onChange={(e) => settings.setGlow(e.target.checked)}
-              />
-            </label>
-            
-            <label className="flex items-center justify-between cursor-pointer">
               <span className="font-semibold">{t(lang, "settings.motion")}</span>
               <input 
                 type="checkbox" 

@@ -7,7 +7,6 @@ import { motion } from "framer-motion";
 export interface PlayingCardProps {
   code: string;
   status: "face-down" | "uncovered" | "played" | "stock" | "waste";
-  isLegal?: boolean;
   onClick?: () => void;
   className?: string;
   isWaste?: boolean;
@@ -46,8 +45,8 @@ function getCardDetails(code: string, lang: "he" | "en") {
   };
 }
 
-export function PlayingCard({ code, status, isLegal, onClick, className, isWaste, isStock, zIndex, left, top }: PlayingCardProps) {
-  const { lang, glow, reducedMotion } = useSettings();
+export function PlayingCard({ code, status, onClick, className, isWaste, isStock, zIndex, left, top }: PlayingCardProps) {
+  const { lang, reducedMotion } = useSettings();
   const details = getCardDetails(code, lang);
   
   const [touchStart, setTouchStart] = useState<{x: number, y: number} | null>(null);
@@ -83,7 +82,6 @@ export function PlayingCard({ code, status, isLegal, onClick, className, isWaste
   };
 
   const isFaceUp = status !== "face-down" && status !== "stock";
-  const shouldGlow = glow && isLegal && status === "uncovered";
   const isWild = code === "WILD";
   
   let ariaLabel = "";
@@ -135,7 +133,6 @@ export function PlayingCard({ code, status, isLegal, onClick, className, isWaste
           className={cn(
             "absolute inset-0 bg-card rounded-lg border border-card-border overflow-hidden",
             "flex flex-col items-center justify-center transition-all duration-300",
-            shouldGlow && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-[1.02]",
             reducedMotion && !isFaceUp ? "opacity-0" : "opacity-100",
             isWild && "bg-gradient-to-br from-yellow-50 to-amber-200 border-amber-400 dark:from-yellow-900/40 dark:to-amber-900/60 dark:border-amber-600"
           )}

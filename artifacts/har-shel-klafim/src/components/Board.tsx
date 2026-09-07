@@ -259,7 +259,6 @@ export function GameBoard() {
         {/* All Cards Rendered Flat */}
         {allCards.map((code) => {
           let status: "face-down" | "uncovered" | "played" | "stock" | "waste" = "face-down";
-          let isLegal = false;
           let onClick = undefined;
           let isWaste = false;
           let isStock = false;
@@ -279,7 +278,6 @@ export function GameBoard() {
             left = p.left;
             top = p.top;
             zIndex = tIdx;
-            isLegal = status === "uncovered" && isAdjacent(wasteTop, code);
             onClick = () => game.playCard(tIdx);
             isHinted = tIdx === hintIdx;
           } else if (wIdx !== -1) {
@@ -307,7 +305,6 @@ export function GameBoard() {
               key={code}
               code={code}
               status={status}
-              isLegal={isLegal || isHinted}
               onClick={onClick ? withDebounce(onClick) : undefined}
               isWaste={isWaste}
               isStock={isStock}
