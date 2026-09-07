@@ -151,6 +151,25 @@ export function GameBoard() {
     return () => observer.disconnect();
   }, []);
   
+  // Extra edge margin follows the hardware intrusion (Dynamic Island):
+  // landscape-primary = device top/island on the left → shift board right;
+  // landscape-secondary = island on the right → shift board left.
+  // Desktop (no coarse pointer) keeps the default left shift.
+  const [islandOnLeft, setIslandOnLeft] = useState(false);
+  useEffect(() => {
+    if (!window.matchMedia("(pointer: coarse)").matches) return;
+    const update = () => {
+      setIslandOnLeft(window.screen.orientation?.type === "landscape-primary");
+    };
+    update();
+    window.screen.orientation?.addEventListener("change", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      window.screen.orientation?.removeEventListener("change", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, []);
+
   const [hintIdx, setHintIdx] = useState<number | null>(null);
 
   const handleHint = () => {
@@ -235,10 +254,11 @@ export function GameBoard() {
           isPortrait ? "pointer-events-none" : ""
         )}
         // translateX is applied in screen space (before the scale), so the
-        // board shifts a true 20px left for optical balance against the
-        // device's right-edge intrusion. Content has ~46px clearance on the
-        // left, so nothing clips.
-        style={{ transform: `translateX(-20px) scale(${scale})` }}
+        // board shifts a true 20px for optical balance against the device's
+        // edge intrusion. The direction follows the intrusion side, so
+        // rotating the phone 180° mirrors the margin. Content has ~46px
+        // clearance on both sides, so nothing clips.
+        style={{ transform: `translateX(${islandOnLeft ? 20 : -20}px) scale(${scale})` }}
         aria-hidden={isPortrait}
         inert={isPortrait ? true : undefined}
       >
