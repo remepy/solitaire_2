@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "הר של קלפים"
+description = "משחק סוליטר TriPeaks נגיש בעברית, המותאם למשחק בדפדפן נייד במצב אופקי עם יעדי לחיצה גדולים, קלט סלחני לרעד, ביטול ורמזים ללא הגבלה."
+version = "1.0.0"
+id = "artifacts/har-shel-klafim"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25809
+
+[services.development]
+run = "pnpm --filter @workspace/har-shel-klafim run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/har-shel-klafim", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/har-shel-klafim/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25809"
+BASE_PATH = "/"
