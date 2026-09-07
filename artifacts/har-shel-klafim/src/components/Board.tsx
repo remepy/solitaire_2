@@ -201,6 +201,9 @@ export function GameBoard() {
   
   const wasteTop = game.waste[game.waste.length - 1];
   const stockCount = game.stock.length;
+  // Coverage is derived from the solver's blocker graph on every render.
+  // This prevents a fully exposed card from remaining visually face-down.
+  const displayStatuses = computeUncovered(game.tableauStatus);
 
   // Framer Motion resolves the animated horizontal card anchor from the
   // inline-end edge in RTL, so include the card width to land at x=720.
@@ -255,7 +258,7 @@ export function GameBoard() {
         
         {/* Tableau cards use their physical index as identity; card codes repeat by rank/suit. */}
         {game.tableau.map((code, index) => {
-          const status = game.tableauStatus[index];
+          const status = displayStatuses[index];
           if (status === "played") return null;
           const position = getCardPos(index);
           const isHinted = index === hintIdx;

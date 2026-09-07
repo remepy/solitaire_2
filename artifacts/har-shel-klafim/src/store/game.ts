@@ -179,7 +179,10 @@ export const useGame = create<GameState>((set, get) => ({
   playCard: (idx: number) => {
     const state = get();
     if (state.isWon || state.isLost) return;
-    if (state.tableauStatus[idx] !== "uncovered") return;
+    // Reconcile against the blocker graph before validating the tap so the
+    // visual stack and logical clickability can never drift apart.
+    const reconciledStatus = computeUncovered(state.tableauStatus);
+    if (reconciledStatus[idx] !== "uncovered") return;
     
     const card = state.tableau[idx];
     const topWaste = state.waste[state.waste.length - 1];
@@ -197,7 +200,7 @@ export const useGame = create<GameState>((set, get) => ({
       newScore += 500; // peak clear
     }
     
-    const newStatus = [...state.tableauStatus];
+    const newStatus = [...reconciledStatus];
     newStatus[idx] = "played";
     const finalStatus = computeUncovered(newStatus);
     
