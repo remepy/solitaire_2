@@ -1,0 +1,1 @@
+- [RTL animated card anchors](rtl-animated-card-anchors.md) — Framer Motion card coordinates in the RTL game need a width-adjusted stock anchor; verify visually against the reference frame.

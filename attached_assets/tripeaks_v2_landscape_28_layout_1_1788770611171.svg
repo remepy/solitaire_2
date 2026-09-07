@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="640" viewBox="0 0 1160 640" font-family="-apple-system, Helvetica Neue, Arial, sans-serif">
+<defs/>
+<rect width="1160" height="640" fill="#FAFAF7"/>
+<text x="40" y="34" font-size="19" font-weight="bold" fill="#2B2B2B">TriPeaks PwPD v2 — classic 28-card board, landscape only (844 × 390 pt reference)</text>
+<text x="40" y="56" font-size="12.5" fill="#6B6B6B">Three peaks · rows 3 / 6 / 9 / 10 · 70 × 98 pt cards on 74 pt pitch, 32 pt row pitch · x(u) = 54 + 74u · y(r) = 46 + 32r · stock 23 · wildcard hidden in stock</text>
+<rect x="40" y="80" width="844" height="390" rx="28" fill="#1F4E46" stroke="#888" stroke-width="1"/>
+<text x="94" y="107" font-size="15" fill="#E0EEE9">Score 2,880</text>
+<text x="462.0" y="107" font-size="15" fill="#E0EEE9" text-anchor="middle">Streak ×3</text>
+<rect x="786" y="80" width="44" height="44" rx="10" fill="#2A5E55" stroke="#7FB7A8" stroke-dasharray="3 3"/>
+<text x="808" y="109" font-size="20" fill="#E0EEE9" text-anchor="middle">⚙</text>
+<rect x="205.0" y="126" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="240.0" y="146" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#0</text>
+<rect x="427.0" y="126" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="462.0" y="146" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#1</text>
+<rect x="649.0" y="126" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="684.0" y="146" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#2</text>
+<rect x="168" y="158" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="203.0" y="178" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#3</text>
+<rect x="242" y="158" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="277.0" y="178" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#4</text>
+<rect x="390" y="158" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="425.0" y="178" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#5</text>
+<rect x="464" y="158" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="499.0" y="178" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#6</text>
+<rect x="612" y="158" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="647.0" y="178" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#7</text>
+<rect x="686" y="158" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="721.0" y="178" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#8</text>
+<rect x="131.0" y="190" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="166.0" y="210" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#9</text>
+<rect x="205.0" y="190" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="240.0" y="210" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#10</text>
+<rect x="279.0" y="190" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="314.0" y="210" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#11</text>
+<rect x="353.0" y="190" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="388.0" y="210" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#12</text>
+<rect x="427.0" y="190" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="462.0" y="210" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#13</text>
+<rect x="501.0" y="190" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="536.0" y="210" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#14</text>
+<rect x="575.0" y="190" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="610.0" y="210" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#15</text>
+<rect x="649.0" y="190" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="684.0" y="210" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#16</text>
+<rect x="723.0" y="190" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<text x="758.0" y="210" font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.9">#17</text>
+<rect x="90" y="218" width="78" height="106" rx="10" fill="none" stroke="#FFD166" stroke-width="4"/>
+<rect x="94" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="104" y="252" font-size="22" font-weight="bold" fill="#222">6</text>
+<text x="104" y="276" font-size="18" fill="#222">♣</text>
+<text x="129.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#18</text>
+<rect x="168" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="178" y="252" font-size="22" font-weight="bold" fill="#C0392B">8</text>
+<text x="178" y="276" font-size="18" fill="#C0392B">♦</text>
+<text x="203.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#19</text>
+<rect x="242" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="252" y="252" font-size="22" font-weight="bold" fill="#222">K</text>
+<text x="252" y="276" font-size="18" fill="#222">♠</text>
+<text x="277.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#20</text>
+<rect x="312" y="218" width="78" height="106" rx="10" fill="none" stroke="#FFD166" stroke-width="4"/>
+<rect x="316" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="326" y="252" font-size="22" font-weight="bold" fill="#C0392B">A</text>
+<text x="326" y="276" font-size="18" fill="#C0392B">♥</text>
+<text x="351.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#21</text>
+<rect x="390" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="400" y="252" font-size="22" font-weight="bold" fill="#222">4</text>
+<text x="400" y="276" font-size="18" fill="#222">♠</text>
+<text x="425.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#22</text>
+<rect x="464" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="474" y="252" font-size="22" font-weight="bold" fill="#C0392B">9</text>
+<text x="474" y="276" font-size="18" fill="#C0392B">♦</text>
+<text x="499.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#23</text>
+<rect x="538" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="548" y="252" font-size="22" font-weight="bold" fill="#222">5</text>
+<text x="548" y="276" font-size="18" fill="#222">♣</text>
+<text x="573.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#24</text>
+<rect x="608" y="218" width="78" height="106" rx="10" fill="none" stroke="#FFD166" stroke-width="4"/>
+<rect x="612" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="622" y="252" font-size="22" font-weight="bold" fill="#C0392B">J</text>
+<text x="622" y="276" font-size="18" fill="#C0392B">♥</text>
+<text x="647.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#25</text>
+<rect x="686" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="696" y="252" font-size="22" font-weight="bold" fill="#C0392B">3</text>
+<text x="696" y="276" font-size="18" fill="#C0392B">♦</text>
+<text x="721.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#26</text>
+<rect x="760" y="222" width="70" height="98" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="770" y="252" font-size="22" font-weight="bold" fill="#222">Q</text>
+<text x="770" y="276" font-size="18" fill="#222">♠</text>
+<text x="795.0" y="312" font-size="11" fill="#7A7A7A" text-anchor="middle">#27</text>
+<rect x="92" y="222" width="74" height="98" fill="none" stroke="#FF8FA3" stroke-dasharray="4 3" stroke-width="1.5"/>
+<text x="131.0" y="298" font-size="9" fill="#D45D8A" text-anchor="middle">hit cell 74×98</text>
+<rect x="79" y="333" width="100" height="110" rx="12" fill="none" stroke="#E7C873" stroke-dasharray="5 4" stroke-width="1.5"/>
+<rect x="100" y="333" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<rect x="97" y="336" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<rect x="94" y="339" width="70" height="98" rx="7" fill="url(#back)" stroke="#C9D0F5" stroke-width="1.5"/>
+<circle cx="162" cy="343" r="13" fill="#E7C873"/><text x="162" y="347" font-size="12" font-weight="bold" fill="#3A2A00" text-anchor="middle">23</text>
+<text x="129" y="459" font-size="10" fill="#E7C873" text-anchor="middle">stock · tap zone 100 × 110</text>
+<rect x="216" y="338" width="72" height="100" rx="7" fill="#F7F1E3" stroke="#B9B2A2"/>
+<text x="226" y="368" font-size="22" font-weight="bold" fill="#C0392B">7</text><text x="226" y="392" font-size="18" fill="#C0392B">♥</text>
+<text x="252" y="460" font-size="10" fill="#CFE3DC" text-anchor="middle">waste 72 × 100</text>
+<rect x="506" y="359" width="150" height="58" rx="29" fill="#2A5E55" stroke="#7FB7A8" stroke-width="1.5"/>
+<text x="581" y="396" font-size="18" font-weight="bold" fill="#F1F7F5" text-anchor="middle">Undo</text>
+<rect x="680" y="359" width="150" height="58" rx="29" fill="#2A5E55" stroke="#7FB7A8" stroke-width="1.5"/>
+<text x="755" y="396" font-size="18" font-weight="bold" fill="#F1F7F5" text-anchor="middle">Hint</text>
+<text x="668" y="433" font-size="10" fill="#CFE3DC" text-anchor="middle">24 pt gap · pills 150 × 58</text>
+<line x1="40" y1="488" x2="94" y2="488" stroke="#D45D8A" stroke-width="1.5"/><text x="67.0" y="502" font-size="10" fill="#D45D8A" text-anchor="middle">54 pt</text>
+<line x1="830" y1="488" x2="884" y2="488" stroke="#D45D8A" stroke-width="1.5"/><text x="857.0" y="502" font-size="10" fill="#D45D8A" text-anchor="middle">54 pt</text>
+<text x="898" y="68" font-size="12" font-weight="bold" fill="#4A4A4A">Vertical budget (390 pt)</text>
+<line x1="906" y1="80" x2="906" y2="126" stroke="#4A4A4A" stroke-width="1.5"/><line x1="902" y1="80" x2="910" y2="80" stroke="#4A4A4A"/><line x1="902" y1="126" x2="910" y2="126" stroke="#4A4A4A"/>
+<text x="916" y="107.0" font-size="11" fill="#4A4A4A">Header — 46</text>
+<line x1="906" y1="126" x2="906" y2="320" stroke="#4A4A4A" stroke-width="1.5"/><line x1="902" y1="126" x2="910" y2="126" stroke="#4A4A4A"/><line x1="902" y1="320" x2="910" y2="320" stroke="#4A4A4A"/>
+<text x="916" y="227.0" font-size="11" fill="#4A4A4A">Tableau — 194</text>
+<text x="916" y="239.0" font-size="10" fill="#7A7A7A">(3 × 32 pitch + 98 card)</text>
+<line x1="906" y1="320" x2="906" y2="328" stroke="#4A4A4A" stroke-width="1.5"/><line x1="902" y1="320" x2="910" y2="320" stroke="#4A4A4A"/><line x1="902" y1="328" x2="910" y2="328" stroke="#4A4A4A"/>
+<text x="916" y="328.0" font-size="11" fill="#4A4A4A">Gap — 8</text>
+<line x1="906" y1="328" x2="906" y2="448" stroke="#4A4A4A" stroke-width="1.5"/><line x1="902" y1="328" x2="910" y2="328" stroke="#4A4A4A"/><line x1="902" y1="448" x2="910" y2="448" stroke="#4A4A4A"/>
+<text x="916" y="392.0" font-size="11" fill="#4A4A4A">Controls — 120</text>
+<line x1="906" y1="448" x2="906" y2="470" stroke="#4A4A4A" stroke-width="1.5"/><line x1="902" y1="448" x2="910" y2="448" stroke="#4A4A4A"/><line x1="902" y1="470" x2="910" y2="470" stroke="#4A4A4A"/>
+<text x="916" y="463.0" font-size="11" fill="#4A4A4A">Safe margin — 22</text>
+<text x="40" y="528" font-size="11.5" fill="#4A4A4A">Indices: row 0 apexes #0–2 · row 1 #3–8 · row 2 #9–17 · bottom row #18–27 (face-up at deal). coveredBy[i] = the two cards directly below-left / below-right; bottom row has none.</text>
+<text x="40" y="545" font-size="11.5" fill="#4A4A4A">Horizontal: 10 cards × 74 pt pitch − 4 = 736 pt, centred with 54 pt margins (clears iPhone landscape notch/safe area). Rows 0–2 offset by half a pitch per row, standard TriPeaks stagger.</text>
+<text x="40" y="562" font-size="11.5" fill="#4A4A4A">Vertical: 32 pt row pitch leaves 33 % of each buried card visible — enough to read the back pattern but every uncovered card is fully exposed (70 × 98 visual, ≥ 74 × 98 hit cell — pink dashed outline on #18).</text>
+<text x="40" y="579" font-size="11.5" fill="#4A4A4A">Controls band shares the row with stock (oversized 100 × 110 tap zone, count badge), enlarged waste card, and Undo / Hint pills. No element below 44 pt; nothing is in the bottom 22 pt (home indicator).</text>
+<text x="40" y="596" font-size="11.5" fill="#4A4A4A">Scaling: all values are fractions of 844 pt width. Fluid from 640 × 320 (cards 53 × 74 — still above 44 pt) to 932 × 430 (cards 77 × 108). Portrait → pause + rotate prompt; never reflow.</text>
+</svg>

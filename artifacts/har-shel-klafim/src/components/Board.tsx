@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PlayingCard } from "./Card";
 import { useGame, isAdjacent, computeUncovered } from "@/store/game";
 import { useSettings } from "@/store/settings";
@@ -197,17 +197,14 @@ export function GameBoard() {
     }
   };
 
-  const allCards = useMemo(() => {
-    if (!game.originalDeal) return [];
-    return [...game.originalDeal.tableau, ...game.originalDeal.stock, game.originalDeal.waste];
-  }, [game.originalDeal]);
-
   if (!game.originalDeal) return null;
   
   const wasteTop = game.waste[game.waste.length - 1];
   const stockCount = game.stock.length;
 
-  const stockLeft = lang === "he" ? 715 : 59;
+  // Framer Motion resolves the animated horizontal card anchor from the
+  // inline-end edge in RTL, so include the card width to land at x=720.
+  const stockLeft = lang === "he" ? 790 : 54;
   const stockTop = 259;
   
   const wasteLeft = lang === "he" ? 596 : 176;
@@ -256,71 +253,59 @@ export function GameBoard() {
           </button>
         </div>
         
-        {/* All Cards Rendered Flat */}
-        {allCards.map((code) => {
-          let status: "face-down" | "uncovered" | "played" | "stock" | "waste" = "face-down";
-          let onClick = undefined;
-          let isWaste = false;
-          let isStock = false;
-          let zIndex = 0;
-          let left = 0;
-          let top = 0;
-          let isHinted = false;
-
-          const tIdx = game.tableau.indexOf(code);
-          const sIdx = game.stock.indexOf(code);
-          const wIdx = game.waste.indexOf(code);
-
-          if (tIdx !== -1 && game.tableauStatus[tIdx] !== "played") {
-            // Still in tableau
-            status = game.tableauStatus[tIdx];
-            const p = getCardPos(tIdx);
-            left = p.left;
-            top = p.top;
-            zIndex = tIdx;
-            onClick = () => game.playCard(tIdx);
-            isHinted = tIdx === hintIdx;
-          } else if (wIdx !== -1) {
-            // In waste
-            status = "waste";
-            isWaste = true;
-            left = wasteLeft;
-            top = wasteTopPos;
-            zIndex = 100 + wIdx; // ensure waste cards stack on top of each other properly
-          } else if (sIdx !== -1) {
-            // In stock
-            status = "stock";
-            isStock = true;
-            left = stockLeft;
-            top = stockTop;
-            zIndex = 50 + sIdx; 
-            // only the top card of the stock should be clickable, but drawing logic handled by the stock area div.
-          } else {
-            // Should not happen, but fallback
-            return null;
-          }
-
+        {/* Tableau cards use their physical index as identity; card codes repeat by rank/suit. */}
+        {game.tableau.map((code, index) => {
+          const status = game.tableauStatus[index];
+          if (status === "played") return null;
+          const position = getCardPos(index);
+          const isHinted = index === hintIdx;
           return (
             <PlayingCard
-              key={code}
+              key={`tableau-${index}`}
               code={code}
               status={status}
-              onClick={onClick ? withDebounce(onClick) : undefined}
-              isWaste={isWaste}
-              isStock={isStock}
-              zIndex={zIndex}
-              left={left}
-              top={top}
+              onClick={withDebounce(() => game.playCard(index))}
+              zIndex={index}
+              left={position.left}
+              top={position.top}
               className={isHinted ? "ring-4 ring-primary ring-offset-2 ring-offset-background scale-[1.05]" : ""}
             />
           );
         })}
+
+        {/* Show a subtle three-card stack, fully inside the dashed stock target. */}
+        {game.stock.slice(-3).map((code, visibleIndex, visibleStock) => {
+          const isTop = visibleIndex === visibleStock.length - 1;
+          const offset = (visibleStock.length - 1 - visibleIndex) * 3;
+          return (
+            <PlayingCard
+              key={`stock-${game.stock.length - visibleStock.length + visibleIndex}`}
+              code={code}
+              status="stock"
+              onClick={isTop ? withDebounce(game.drawStock) : undefined}
+              isStock
+              zIndex={200 + visibleIndex}
+              left={stockLeft + (lang === "he" ? -offset : offset)}
+              top={stockTop - offset}
+            />
+          );
+        })}
+
+        <PlayingCard
+          key={`waste-${game.waste.length}`}
+          code={wasteTop}
+          status="waste"
+          isWaste
+          zIndex={150}
+          left={wasteLeft}
+          top={wasteTopPos}
+        />
         
         {/* Controls Band */}
         <div className="absolute top-[248px] inset-x-0 h-[120px]">
           {/* Stock Area Hitbox */}
           <div 
-            className="absolute top-[11px] w-[100px] h-[110px] rounded-xl border-2 border-dashed border-muted flex items-center justify-center cursor-pointer"
+            className="absolute top-[11px] z-[180] w-[100px] h-[110px] rounded-xl border-2 border-dashed border-muted flex items-center justify-center cursor-pointer"
             style={{ insetInlineStart: 44 }}
             onClick={withDebounce(game.drawStock)}
             data-testid="stock-area"
