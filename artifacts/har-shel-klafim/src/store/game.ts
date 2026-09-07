@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { generateSolvableDeal, coveredBy, N } from "../lib/solver";
+import { generateDeal, coveredBy, N } from "../lib/solver";
 
 function fallbackDeal() {
   const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
@@ -127,10 +127,11 @@ export const useGame = create<GameState>((set, get) => ({
   announce: (msg) => set({ lastAnnouncement: msg }),
 
   newDeal: () => {
-    // Generate new solvable deal
+    // Calibrated deal: always solvable with perfect play, but winnable by
+    // heuristic play only ~1/3 of the time (see solver.js).
     let res;
     try {
-      res = generateSolvableDeal("auto");
+      res = generateDeal("auto");
     } catch(e) {
       // Fallback
       res = { deal: fallbackDeal() };

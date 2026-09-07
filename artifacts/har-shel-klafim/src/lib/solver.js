@@ -77,6 +77,47 @@ function isSolvable(tableauRanks, stockRanks, wasteRank) {
   return dfs(0, 0, wasteRank);
 }
 
+// ---- Greedy player simulator ----
+// Plays with the same heuristic as the Hint button: among legal moves, play
+// the one that unblocks the most new cards (random tie-break); draw from the
+// stock when no move exists. Returns true iff the game is won.
+function playGreedy(tableauRanks, stockRanks, wasteRank, rng = Math.random) {
+  const played = new Array(N).fill(false);
+  let waste = wasteRank;
+  let stockIdx = 0;
+  for (;;) {
+    const moves = [];
+    for (let i = 0; i < N; i++) {
+      if (played[i]) continue;
+      let free = true;
+      for (const b of coveredBy[i]) if (!played[b]) { free = false; break; }
+      if (!free) continue;
+      if (waste === WILD || adj(tableauRanks[i], waste)) {
+        let s = 0; // how many cards does removing i unblock?
+        for (const j of blocks[i]) {
+          if (played[j]) continue;
+          let f = true;
+          for (const b of coveredBy[j]) if (b !== i && !played[b]) { f = false; break; }
+          if (f) s++;
+        }
+        moves.push([s, i]);
+      }
+    }
+    if (moves.length > 0) {
+      moves.sort((a, b) => b[0] - a[0]);
+      let best = 0;
+      while (best + 1 < moves.length && moves[best + 1][0] === moves[0][0]) best++;
+      const pick = moves[Math.floor(rng() * (best + 1))][1];
+      played[pick] = true;
+      waste = tableauRanks[pick];
+    } else if (stockIdx < stockRanks.length) {
+      waste = stockRanks[stockIdx++];
+    } else {
+      return played.every(Boolean);
+    }
+  }
+}
+
 // ---- Deal generation ----
 function shuffledDeck(rng) {
   const deck = [];
@@ -130,4 +171,53 @@ function generateSolvableDeal(wildMode = "auto", rng = Math.random, maxAttempts 
   throw new Error("maxAttempts exceeded");
 }
 
-export { isSolvable, generateSolvableDeal, BOARD, STOCK_SIZE, WILD_CHANCE, coveredBy, N };
+// ---- Calibrated deal generation ----
+// Random TriPeaks deals are almost always solvable with perfect play
+// (measured: ~98%), so filtering on solvability alone lets a careful player
+// win every game. To land near TARGET_WIN_RATE for typical play, we deal
+// uniformly at random but keep only deals that are (a) solvable with perfect
+// play and (b) usually lost by the greedy hint heuristic: greedy-winnable
+// deals are accepted with probability P_ACCEPT_EASY, calibrated below.
+//
+// Measured on 1500 random deals (wildChance 0.4):
+//   P(solvable) = 97.7%, P(greedy win | solvable) = 55.7%
+//   p = t(1-g) / g(1-t) = (1/3)(0.443) / (0.557)(2/3) = 0.398
+const TARGET_WIN_RATE = 1 / 3;
+const P_ACCEPT_EASY = 0.4;
+
+function generateDeal(wildMode = "auto", rng = Math.random, maxAttempts = 2000) {
+  const wantWild =
+    wildMode === "always" ? true :
+    wildMode === "never"  ? false :
+    rng() < WILD_CHANCE;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const deck = shuffledDeck(rng);
+    const tableau = deck.slice(0, N);
+    const waste = deck[N];
+    let stock = deck.slice(N + 1, N + 1 + (wantWild ? STOCK_SIZE - 1 : STOCK_SIZE));
+    if (wantWild) {
+      const pos = Math.floor(rng() * (stock.length + 1));
+      stock = [...stock.slice(0, pos), { r: WILD, s: "" }, ...stock.slice(pos)];
+    }
+    const tableauRanks = tableau.map(c => c.r);
+    const stockRanks = stock.map(c => c.r);
+    if (!isSolvable(tableauRanks, stockRanks, waste.r)) continue;
+    const easy = playGreedy(tableauRanks, stockRanks, waste.r, rng);
+    if (easy && rng() >= P_ACCEPT_EASY) continue;
+    return {
+      attempts: attempt,
+      deal: {
+        deal_id: `${BOARD}-${Date.now().toString(36)}-${Math.floor(rng() * 1e9).toString(36)}`,
+        verified_solvable: true,
+        tableau: tableau.map(code),
+        // PRD: stock array draw order = LAST element drawn first → reverse internal order
+        stock: stock.map(code).reverse(),
+        waste: code(waste)
+      }
+    };
+  }
+  throw new Error("maxAttempts exceeded");
+}
+
+export { isSolvable, generateSolvableDeal, generateDeal, playGreedy, BOARD, STOCK_SIZE, WILD_CHANCE, coveredBy, N };
