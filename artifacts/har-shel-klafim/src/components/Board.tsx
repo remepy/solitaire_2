@@ -128,25 +128,22 @@ export function GameBoard() {
     }
   }, [isPortrait, lang]);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  
+
   useEffect(() => {
-    const onResize = () => {
-      if (!containerRef.current) return;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const refW = 844;
-      const refH = 390;
-      
-      const availableW = Math.min(w, 932);
-      const scaleW = availableW / refW;
-      const scaleH = h / refH;
-      setScale(Math.min(scaleW, scaleH));
-    };
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const stage = stageRef.current;
+    if (!stage) return;
+    // Measure the content box inside the safe-area padding so the board
+    // always fits between hardware intrusions (Dynamic Island, home
+    // indicator) instead of scaling to the raw screen size.
+    const observer = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      const availableW = Math.min(width, 932);
+      setScale(Math.min(availableW / 844, height / 390));
+    });
+    observer.observe(stage);
+    return () => observer.disconnect();
   }, []);
   
   const [hintIdx, setHintIdx] = useState<number | null>(null);
@@ -213,15 +210,21 @@ export function GameBoard() {
 
   return (
     <div 
+      ref={stageRef}
       className={cn(
         "fixed inset-0 bg-background text-foreground flex items-center justify-center overflow-hidden touch-none",
         ""
       )}
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingRight: "env(safe-area-inset-right)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+      }}
       dir={lang === "he" ? "rtl" : "ltr"}
       lang={lang}
     >
       <div 
-        ref={containerRef}
         className={cn(
           "relative w-[844px] h-[390px] origin-center",
           isPortrait ? "pointer-events-none" : ""
