@@ -14,6 +14,12 @@ export interface PlayingCardProps {
   zIndex?: number;
   left: number;
   top: number;
+  id?: string;
+  ariaDescribedBy?: string;
+  /** Announced as unavailable but still tappable (the handler gives feedback). */
+  ariaDisabled?: boolean;
+  /** Brief rejection wiggle (applied to the inner face so it never fights the flip transform). */
+  wiggle?: boolean;
 }
 
 const suitSymbols: Record<string, { glyph: string; color: string }> = {
@@ -45,7 +51,7 @@ function getCardDetails(code: string, lang: "he" | "en") {
   };
 }
 
-export function PlayingCard({ code, status, onClick, className, isWaste, isStock, zIndex, left, top }: PlayingCardProps) {
+export function PlayingCard({ code, status, onClick, className, isWaste, isStock, zIndex, left, top, id, ariaDescribedBy, ariaDisabled, wiggle }: PlayingCardProps) {
   const { lang, reducedMotion } = useSettings();
   const details = getCardDetails(code, lang);
   
@@ -101,7 +107,9 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
         "absolute flex items-center justify-center rounded-lg shadow-sm select-none",
         "w-[70px] h-[98px]", // Base size
         !isFaceUp ? "pointer-events-none" : "pointer-events-auto cursor-pointer",
-        isStock && "pointer-events-auto cursor-pointer",
+        // Only the top stock card is a control; the cards under it let taps
+        // fall through to the dashed stock zone.
+        isStock && onClick && "pointer-events-auto cursor-pointer",
         className
       )}
       style={{
@@ -120,9 +128,19 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
       onTouchEnd={handleTouchEnd}
       onMouseDown={handleTouchStart}
       onMouseUp={handleTouchEnd}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       role={onClick ? "button" : "img"}
       aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
+      aria-disabled={ariaDisabled || undefined}
       tabIndex={onClick ? 0 : -1}
+      id={id}
+      data-tut-interactive={onClick ? true : undefined}
       data-testid={`card-${status}-${code}`}
     >
       {/* Extended Hit Area */}
@@ -130,7 +148,7 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
 
       {/* Card Inner Wrapper for Flip */}
       <div 
-        className="relative w-full h-full rounded-lg"
+        className={cn("relative w-full h-full rounded-lg", wiggle && !reducedMotion && "tut-wiggle")}
         style={{ transformStyle: "preserve-3d" }}
       >
         {/* Front */}

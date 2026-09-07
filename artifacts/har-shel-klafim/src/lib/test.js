@@ -1,5 +1,5 @@
-"use strict";
-const assert = require("assert");
+import assert from "node:assert";
+import { readFileSync } from "node:fs";
 import { isSolvable, generateSolvableDeal, coveredBy, N, STOCK_SIZE } from "./solver.js";
 
 // --- 1. Coverage graph structural checks ---
@@ -41,7 +41,7 @@ console.log("solver edge cases OK");
 let wild = 0, attempts = 0;
 const t0 = Date.now();
 for (let k = 0; k < 300; k++) {
-  import { deal, attempts: a } = generateSolvableDeal("auto");
+  const { deal, attempts: a } = generateSolvableDeal("auto");
   attempts += a;
   assert.strictEqual(deal.tableau.length, 28);
   assert.strictEqual(deal.stock.length, STOCK_SIZE);
@@ -83,4 +83,25 @@ function stats(withWild, n){
 }
 console.log("no wild, stock 23:", stats(false, 1000));
 console.log("wild,    stock 23:", stats(true, 1000));
+// --- 5. Tutorial deal script guarantees (tutorial spec §2) ---
+{
+  const d = JSON.parse(readFileSync(new URL("./tutorial_deal.json", import.meta.url), "utf8"));
+  const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+  const rank = c => RANKS.indexOf(c.slice(0, -1));
+  const adj = (a, b) => { const x = Math.abs(rank(a) - rank(b)) % 13; return x === 1 || x === 12; };
+  const all = [...d.tableau, ...d.stock, d.waste];
+  assert.strictEqual(all.length, 52); assert.strictEqual(new Set(all).size, 52, "tutorial deal must be a full unique deck");
+  const played = new Array(N).fill(false);
+  const legal = w => { const r = []; for (let i = 0; i < N; i++) if (!played[i] && coveredBy[i].every(b => played[b]) && adj(w, d.tableau[i])) r.push(i); return r; };
+  assert.deepStrictEqual(legal(d.waste), [d.script.step1_target], "exactly one legal move at deal");
+  played[d.script.step1_target] = true;
+  assert.deepStrictEqual(legal(d.tableau[d.script.step1_target]), [], "no legal move after step 1");
+  assert.strictEqual(d.stock[d.stock.length - 1], d.script.step2_draws, "first draw must be the scripted card");
+  assert.deepStrictEqual(legal(d.script.step2_draws), [d.script.step3_target], "exactly one legal move after the draw");
+  played[d.script.step3_target] = true;
+  for (let i = 0; i < 18; i++) assert.ok(!coveredBy[i].every(b => played[b]), "no card flips before handoff");
+  assert.ok(legal(d.tableau[d.script.step3_target]).length >= 2, "handoff must offer real choice");
+  assert.strictEqual(isSolvable(d.tableau.map(rank), d.stock.map(rank).reverse(), rank(d.waste)), true, "tutorial deal solvable");
+  console.log("tutorial deal OK");
+}
 console.log("ALL TESTS PASSED");

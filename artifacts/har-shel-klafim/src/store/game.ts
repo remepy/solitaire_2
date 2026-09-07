@@ -42,6 +42,13 @@ export interface GameHistoryEntry {
   prevStatus: TableauStatus[]; // to easily restore uncovered state
 }
 
+// Emitted after a successful state change so observers (e.g. the tutorial)
+// can advance on real game events rather than on raw taps. `seq` makes
+// consecutive identical moves distinguishable.
+export type GameMove =
+  | { seq: number; type: "play"; idx: number; card: CardCode }
+  | { seq: number; type: "draw"; card: CardCode };
+
 export interface GameState {
   originalDeal: OriginalDeal | null;
   
@@ -56,7 +63,10 @@ export interface GameState {
   isLost: boolean;
   
   history: GameHistoryEntry[];
+  lastMove: GameMove | null;
 
+  /** Load any deal (generated or scripted) through the one shared path. */
+  loadDeal: (deal: OriginalDeal) => void;
   newDeal: () => void;
   replayDeal: () => void;
   playCard: (idx: number) => void;
@@ -123,21 +133,11 @@ export const useGame = create<GameState>((set, get) => ({
   isWon: false,
   isLost: false,
   history: [],
+  lastMove: null,
   lastAnnouncement: null,
   announce: (msg) => set({ lastAnnouncement: msg }),
 
-  newDeal: () => {
-    // Calibrated deal: always solvable with perfect play, but winnable by
-    // heuristic play only ~1/3 of the time (see solver.js).
-    let res;
-    try {
-      res = generateDeal("auto");
-    } catch(e) {
-      // Fallback
-      res = { deal: fallbackDeal() };
-    }
-    const deal = res.deal as OriginalDeal;
-    
+  loadDeal: (deal: OriginalDeal) => {
     let status = Array(N).fill("face-down") as TableauStatus[];
     // bottom row uncovered
     for(let i = 18; i < 28; i++) status[i] = "uncovered";
@@ -153,28 +153,28 @@ export const useGame = create<GameState>((set, get) => ({
       isWon: false,
       isLost: false,
       history: [],
+      lastMove: null,
       lastAnnouncement: null
     });
+  },
+
+  newDeal: () => {
+    // Calibrated deal: always solvable with perfect play, but winnable by
+    // heuristic play only ~1/3 of the time (see solver.js).
+    let res;
+    try {
+      res = generateDeal("auto");
+    } catch(e) {
+      // Fallback
+      res = { deal: fallbackDeal() };
+    }
+    get().loadDeal(res.deal as OriginalDeal);
   },
 
   replayDeal: () => {
     const orig = get().originalDeal;
     if (!orig) return;
-    let status = Array(N).fill("face-down") as TableauStatus[];
-    for(let i = 18; i < 28; i++) status[i] = "uncovered";
-    
-    set({
-      tableau: orig.tableau,
-      tableauStatus: status,
-      stock: orig.stock,
-      waste: [orig.waste],
-      score: 0,
-      streak: 1,
-      isWon: false,
-      isLost: false,
-      history: [],
-      lastAnnouncement: null
-    });
+    get().loadDeal(orig);
   },
 
   playCard: (idx: number) => {
@@ -227,6 +227,7 @@ export const useGame = create<GameState>((set, get) => ({
       streak: nextStreak,
       isWon,
       isLost,
+      lastMove: { seq: (state.lastMove?.seq ?? 0) + 1, type: "play", idx, card },
       lastAnnouncement: isWon ? "win" : (idx <= 2 ? "peak" : `play:${card}`)
     });
   },
@@ -257,6 +258,7 @@ export const useGame = create<GameState>((set, get) => ({
       streak: nextStreak,
       isWon,
       isLost,
+      lastMove: { seq: (state.lastMove?.seq ?? 0) + 1, type: "draw", card },
       lastAnnouncement: isLost ? "lose" : (isWild ? "wild" : `draw:${card}`)
     });
   },

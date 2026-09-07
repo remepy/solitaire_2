@@ -9,36 +9,36 @@ import { SettingsModal } from "./SettingsModal";
 import { WinLoseOverlay } from "./WinLoseOverlay";
 import { PortraitOverlay } from "./overlay/PortraitOverlay";
 import { useIsRotated } from "@/hooks/useIsRotated";
+import { TutorialOverlay, TUT_BUBBLE_TEXT_ID } from "./TutorialOverlay";
+import { useTutorial, isGuidedStep, isAllowed, primaryTarget, TUTORIAL_EVERY_ROUND, type TutTarget } from "@/store/tutorial";
+import { getCardPos, getStockPos, getWastePos } from "@/lib/layout";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
-const TABLEAU_U_VALUES = [
-  // row 0
-  1.5, 4.5, 7.5,
-  // row 1
-  1, 2, 4, 5, 7, 8,
-  // row 2
-  0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5,
-  // row 3
-  0, 1, 2, 3, 4, 5, 6, 7, 8, 9
-];
-
-const TABLEAU_R_VALUES = [
-  ...Array(3).fill(0),
-  ...Array(6).fill(1),
-  ...Array(9).fill(2),
-  ...Array(10).fill(3)
-];
-
-function getCardPos(idx: number) {
-  const u = TABLEAU_U_VALUES[idx];
-  const r = TABLEAU_R_VALUES[idx];
-  return { left: 54 + 74 * u, top: 46 + 32 * r };
-}
+const TUT_TEXT_KEYS = {
+  step1: "tut.s1.action",
+  step2: "tut.s2.action",
+  step3: "tut.s3.action",
+  handoff: "tut.s4.action",
+} as const;
 
 export function GameBoard() {
-  const { lang, sound, textSize } = useSettings();
+  const { lang, sound, textSize, tutorialSeen } = useSettings();
+  const reducedMotion = useReducedMotion();
   const game = useGame();
   const isPortrait = useIsRotated();
   const [showSettings, setShowSettings] = useState(false);
+  const tutStep = useTutorial((s) => s.step);
+  const startTutorial = useTutorial((s) => s.start);
+  const guided = isGuidedStep(tutStep);
+  const tutTarget = guided ? primaryTarget(tutStep) : null;
+
+  // Rejection feedback: the tapped element wiggles and the waste highlights.
+  const [rejected, setRejected] = useState<TutTarget | "controls" | null>(null);
+  useEffect(() => {
+    if (!rejected) return;
+    const id = setTimeout(() => setRejected(null), 350);
+    return () => clearTimeout(id);
+  }, [rejected]);
   
   // Audio refs
   const audioCtx = useRef<AudioContext | null>(null);
@@ -83,11 +83,24 @@ export function GameBoard() {
   
   useEffect(() => {
     if (!game.originalDeal) {
-      game.newDeal();
+      // First launch runs the tutorial; it loads its deal through loadDeal.
+      if (tutorialSeen && !TUTORIAL_EVERY_ROUND) game.newDeal();
+      else startTutorial();
     }
   }, []);
   
   const [ariaMsg, setAriaMsg] = useState("");
+
+  // Tutorial step start: announce the action line and move focus to the
+  // element the player must activate (spec §5).
+  useEffect(() => {
+    if (tutStep === "idle" || tutStep === "done") return;
+    setAriaMsg(t(lang, TUT_TEXT_KEYS[tutStep]));
+    const target = primaryTarget(tutStep);
+    if (!target) return;
+    const el = document.getElementById(target === "stock" ? "stock-area" : `tableau-${target.slice(5)}`);
+    el?.focus({ preventScroll: true });
+  }, [tutStep]);
   useEffect(() => {
     if (!game.lastAnnouncement) return;
     const msg = game.lastAnnouncement;
@@ -218,6 +231,28 @@ export function GameBoard() {
     }
   };
 
+  // Tutorial input gating (spec §7): during a guided step, any tap outside
+  // the allowed target gets rejection feedback and never reaches the game.
+  const rejectTap = (what: TutTarget | "controls") => {
+    setRejected(what);
+    playSound("error");
+  };
+  const gated = (target: TutTarget, fn: () => void) => () => {
+    if (guided && !isAllowed(tutStep, target)) return rejectTap(target);
+    fn();
+  };
+  const gatedControl = (fn: () => void) => () => {
+    if (guided) return rejectTap("controls");
+    fn();
+  };
+  // Taps that land on the dimmed background (including face-down cards,
+  // which are pointer-transparent) still get the standard rejection cue.
+  const onFrameClick = (e: React.MouseEvent) => {
+    if (!guided || isPortrait) return;
+    if ((e.target as Element).closest("[data-tut-interactive]")) return;
+    rejectTap("waste");
+  };
+
   if (!game.originalDeal) return null;
   
   const wasteTop = game.waste[game.waste.length - 1];
@@ -226,11 +261,18 @@ export function GameBoard() {
   // This prevents a fully exposed card from remaining visually face-down.
   const displayStatuses = computeUncovered(game.tableauStatus);
 
-  const stockLeft = lang === "he" ? 720 : 54;
-  const stockTop = 259;
-  
-  const wasteLeft = lang === "he" ? 596 : 176;
-  const wasteTopPos = 258;
+  const { left: stockLeft, top: stockTop } = getStockPos(lang);
+  const { left: wasteLeft, top: wasteTopPos } = getWastePos(lang);
+
+  // HANDOFF shows the legal cards glowing until the player's next move.
+  const handoffGlow = new Set<number>();
+  if (tutStep === "handoff") {
+    for (let i = 0; i < 28; i++) {
+      if (displayStatuses[i] === "uncovered" && isAdjacent(wasteTop, game.tableau[i])) handoffGlow.add(i);
+    }
+  }
+  const glowClass = "ring-4 ring-primary ring-offset-2 ring-offset-background scale-[1.05]";
+  const controlsDim = guided ? "opacity-40" : "";
 
   return (
     <div 
@@ -261,6 +303,7 @@ export function GameBoard() {
         style={{ transform: `translateX(${islandOnLeft ? 20 : -20}px) scale(${scale})` }}
         aria-hidden={isPortrait}
         inert={isPortrait ? true : undefined}
+        onClick={onFrameClick}
       >
         {/* Header Strip */}
         <div className="absolute top-0 inset-x-0 h-[46px] flex items-center justify-between px-[54px]">
@@ -277,35 +320,48 @@ export function GameBoard() {
           )}
           
           <button
-            onClick={withDebounce(() => setShowSettings(true))}
-            className="w-[44px] h-[44px] flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground transition-colors"
+            onClick={withDebounce(gatedControl(() => setShowSettings(true)))}
+            className={cn("w-[44px] h-[44px] flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground transition-colors", controlsDim, rejected === "controls" && !reducedMotion && "tut-wiggle")}
             aria-label={t(lang, "btn.menu")}
+            aria-disabled={guided || undefined}
             data-testid="btn-settings"
+            data-tut-interactive
           >
             <Settings className="w-6 h-6" />
           </button>
         </div>
         
-        {/* The tableau is a physical, never-mirrored coordinate system. */}
-        <div className="absolute inset-0" dir="ltr">
+        {/* The tableau is a physical, never-mirrored coordinate system.
+            The layer itself must be pointer-transparent: it spans the whole
+            frame and would otherwise swallow taps meant for the header. */}
+        <div className="absolute inset-0 pointer-events-none" dir="ltr">
           {game.tableau.map((code, index) => {
             const status = displayStatuses[index];
             if (status === "played") return null;
             const position = getCardPos(index);
-            const isHinted = index === hintIdx;
+            const target: TutTarget = `card:${index}`;
+            const isTutTarget = tutTarget === target;
+            const isHinted = index === hintIdx || isTutTarget || handoffGlow.has(index);
             return (
               <PlayingCard
                 key={`tableau-${index}`}
+                id={`tableau-${index}`}
                 code={code}
                 status={status}
-                onClick={withDebounce(() => game.playCard(index))}
+                // Only uncovered cards are controls; face-down cards are
+                // pointer-transparent images and stay out of the tab order.
+                onClick={status === "uncovered" ? withDebounce(gated(target, () => game.playCard(index))) : undefined}
                 // Once a card is logically uncovered, it must render above
                 // every remaining face-down layer. Preserve physical order
                 // within each status group using the tableau index.
-                zIndex={status === "uncovered" ? 100 + index : index}
+                // The tutorial target rises above the dim layer's cut-out.
+                zIndex={isTutTarget ? 450 : status === "uncovered" ? 100 + index : index}
                 left={position.left}
                 top={position.top}
-                className={isHinted ? "ring-4 ring-primary ring-offset-2 ring-offset-background scale-[1.05]" : ""}
+                className={isHinted ? glowClass : ""}
+                ariaDescribedBy={isTutTarget ? TUT_BUBBLE_TEXT_ID : undefined}
+                ariaDisabled={guided && !isTutTarget}
+                wiggle={rejected === target}
               />
             );
           })}
@@ -320,9 +376,10 @@ export function GameBoard() {
               key={`stock-${game.stock.length - visibleStock.length + visibleIndex}`}
               code={code}
               status="stock"
-              onClick={isTop ? withDebounce(game.drawStock) : undefined}
+              onClick={isTop ? withDebounce(gated("stock", game.drawStock)) : undefined}
               isStock
               zIndex={200 + visibleIndex}
+              wiggle={isTop && rejected === "stock"}
               left={stockLeft + (lang === "he" ? -offset : offset)}
               top={stockTop - offset}
             />
@@ -337,18 +394,34 @@ export function GameBoard() {
           zIndex={150}
           left={wasteLeft}
           top={wasteTopPos}
+          className={rejected ? "ring-4 ring-destructive ring-offset-2 ring-offset-background" : ""}
         />
         
         {/* Controls Band */}
         <div className="absolute top-[248px] inset-x-0 h-[120px]">
           {/* Stock Area Hitbox */}
           <div 
-            className="absolute top-[11px] z-[180] w-[100px] h-[110px] rounded-xl border-2 border-dashed border-muted flex items-center justify-center cursor-pointer"
+            id="stock-area"
+            className={cn(
+              "absolute top-[11px] z-[180] w-[100px] h-[110px] rounded-xl border-2 border-dashed border-muted flex items-center justify-center cursor-pointer",
+              "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary",
+              rejected === "stock" && !reducedMotion && "tut-wiggle"
+            )}
             style={{ insetInlineStart: 44 }}
-            onClick={withDebounce(game.drawStock)}
+            onClick={withDebounce(gated("stock", game.drawStock))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                withDebounce(gated("stock", game.drawStock))();
+              }
+            }}
             data-testid="stock-area"
             aria-label={t(lang, "a11y.stock", { n: stockCount })}
+            aria-describedby={tutTarget === "stock" ? TUT_BUBBLE_TEXT_ID : undefined}
+            aria-disabled={guided && tutTarget !== "stock" ? true : undefined}
             role="button"
+            tabIndex={0}
+            data-tut-interactive
           />
 
           <div
@@ -365,25 +438,34 @@ export function GameBoard() {
             style={{ insetInlineEnd: 54 }}
           >
             <button
-              onClick={withDebounce(game.undo)}
-              disabled={game.history.length === 0}
-              className="w-[150px] h-[58px] flex items-center justify-center gap-2 bg-secondary text-secondary-foreground font-semibold rounded-full hover:bg-secondary/80 disabled:opacity-50 disabled:pointer-events-none transition-colors active:scale-95 z-[200]"
+              onClick={withDebounce(gatedControl(game.undo))}
+              disabled={!guided && game.history.length === 0}
+              className={cn("w-[150px] h-[58px] flex items-center justify-center gap-2 bg-secondary text-secondary-foreground font-semibold rounded-full hover:bg-secondary/80 disabled:opacity-50 disabled:pointer-events-none transition-colors active:scale-95 z-[200]", controlsDim, rejected === "controls" && !reducedMotion && "tut-wiggle")}
               aria-label={t(lang, "btn.undo")}
+              aria-disabled={guided || undefined}
+              data-testid="btn-undo"
+              data-tut-interactive
             >
               <RotateCcw className={cn("w-5 h-5", lang === "he" && "scale-x-[-1]")} />
               <span>{t(lang, "btn.undo")}</span>
             </button>
             
             <button
-              onClick={withDebounce(handleHint)}
-              className="w-[150px] h-[58px] flex items-center justify-center gap-2 bg-secondary text-secondary-foreground font-semibold rounded-full hover:bg-secondary/80 transition-colors active:scale-95 z-[200]"
+              onClick={withDebounce(gatedControl(handleHint))}
+              className={cn("w-[150px] h-[58px] flex items-center justify-center gap-2 bg-secondary text-secondary-foreground font-semibold rounded-full hover:bg-secondary/80 transition-colors active:scale-95 z-[200]", controlsDim, rejected === "controls" && !reducedMotion && "tut-wiggle")}
               aria-label={t(lang, "btn.hint")}
+              aria-disabled={guided || undefined}
+              data-testid="btn-hint"
+              data-tut-interactive
             >
               <Lightbulb className="w-5 h-5" />
               <span>{t(lang, "btn.hint")}</span>
             </button>
           </div>
         </div>
+
+        {/* Coaching layer: reads game/tutorial state only; gating is above. */}
+        <TutorialOverlay />
       </div>
       
       <div className="sr-only" aria-live="polite" role="status">
