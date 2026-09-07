@@ -1,1 +1,1 @@
-- [RTL animated card anchors](rtl-animated-card-anchors.md) — Framer Motion card coordinates in the RTL game need a width-adjusted stock anchor; verify visually against the reference frame.
+- [Card flip transform origin](rtl-animated-card-anchors.md) — rotateY flips must use center origin; a corner origin offsets face-down cards by one card width and breaks the coverage illusion.

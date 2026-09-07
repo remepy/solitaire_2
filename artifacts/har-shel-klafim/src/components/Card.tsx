@@ -98,7 +98,7 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
       }}
       transition={reducedMotion ? { duration: 0.15 } : { duration: 0.3, ease: "easeOut" }}
       className={cn(
-        "absolute flex items-center justify-center rounded-lg shadow-sm select-none origin-top-left",
+        "absolute flex items-center justify-center rounded-lg shadow-sm select-none",
         "w-[70px] h-[98px]", // Base size
         !isFaceUp ? "pointer-events-none" : "pointer-events-auto cursor-pointer",
         isStock && "pointer-events-auto cursor-pointer",
@@ -109,7 +109,10 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
         top,
         zIndex: zIndex,
         transformStyle: "preserve-3d",
-        perspective: "1000px",
+        // The flip MUST rotate around the card's center axis. A corner origin
+        // projects a face-down card one full card-width away from its logical
+        // cell, which breaks the physical coverage layout.
+        transformOrigin: "50% 50%",
         direction: "ltr",
       }}
       dir="ltr"

@@ -1,10 +1,10 @@
 ---
-name: RTL animated card anchors
-description: A positioning quirk affecting animated cards in the Hebrew landscape game.
+name: Card flip transform origin
+description: 3D card flips must rotate around the center axis; a corner origin shifts face-down cards off their logical cells and breaks coverage geometry.
 ---
 
-The tableau must live in an explicit LTR coordinate layer, and card positions must use fixed physical CSS coordinates rather than animated left/top values.
+In the TriPeaks game, every `rotateY(180)` card flip must use `transform-origin: 50% 50%`. A corner origin (e.g. Tailwind `origin-top-left`) projects a face-down card one full card-width away from its logical `left/top` cell, so blockers no longer visually overlap the cards they cover and revealed cards can appear hidden beneath them.
 
-**Why:** Framer Motion resolved animated coordinates from unexpected edges under RTL and could retain stale offsets through hot reload. Cards then drifted from blocker positions even when numeric coordinates matched the reference.
+**Why:** This caused a long chain of misdiagnosed "un-flipped / free card" bugs. Face-up cards sat at their correct positions while face-down cards were offset by exactly one card width, so the visual stack disagreed with the solver's coverage graph. Two attempted fixes (RTL coordinate layer, fixed CSS coordinates) were necessary but not sufficient because the corner-origin flip remained.
 
-**How to apply:** Keep tableau geometry inside an LTR wrapper, set left/top directly, and animate only flip/scale. Restart the workflow before judging coordinate fixes so stale motion values cannot survive hot reload.
+**How to apply:** Never combine a 3D flip with a non-center transform-origin on positioned game pieces. Keep tableau geometry in an explicit LTR wrapper (the board never mirrors), set left/top directly rather than animating them, and animate only flip/scale. Restart the workflow before judging coordinate fixes — hot reload can retain stale Framer Motion values and make a correct fix look broken.
