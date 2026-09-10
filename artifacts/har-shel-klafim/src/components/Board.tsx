@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { PlayingCard } from "./Card";
 import { useGame, isAdjacent, computeUncovered } from "@/store/game";
 import { useSettings } from "@/store/settings";
-import { t } from "@/lib/i18n";
+import { t, type TranslationKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { RotateCcw, Lightbulb, Settings } from "lucide-react";
 import { SettingsModal } from "./SettingsModal";
@@ -15,10 +15,12 @@ import { getCardPos, getStockPos, getWastePos } from "@/lib/layout";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const TUT_TEXT_KEYS = {
+  intro: "tut.intro.action",
   step1: "tut.s1.action",
   step2: "tut.s2.action",
   step3: "tut.s3.action",
-  handoff: "tut.s4.action",
+  step4: "tut.s4.action",
+  handoff: "tut.handoff.action",
 } as const;
 
 export function GameBoard() {
@@ -95,12 +97,14 @@ export function GameBoard() {
   // element the player must activate (spec §5).
   useEffect(() => {
     if (tutStep === "idle" || tutStep === "done") return;
-    setAriaMsg(t(lang, TUT_TEXT_KEYS[tutStep]));
+    const key = TUT_TEXT_KEYS[tutStep];
+    const ruleKey = key.replace(".action", ".rule") as TranslationKey;
+    setAriaMsg(`${t(lang, key)}. ${t(lang, ruleKey)}`);
     const target = primaryTarget(tutStep);
     if (!target) return;
     const el = document.getElementById(target === "stock" ? "stock-area" : `tableau-${target.slice(5)}`);
     el?.focus({ preventScroll: true });
-  }, [tutStep]);
+  }, [tutStep, lang]);
   useEffect(() => {
     if (!game.lastAnnouncement) return;
     const msg = game.lastAnnouncement;
@@ -130,6 +134,13 @@ export function GameBoard() {
     } else if (msg === "peak") {
       setAriaMsg(t(lang, "a11y.peak"));
       playSound("win");
+    }
+    // A move and its next coaching step arrive together. Keep the full
+    // instruction in the live region rather than overwriting it with "Played".
+    if (tutStep !== "idle" && tutStep !== "done") {
+      const key = TUT_TEXT_KEYS[tutStep];
+      const ruleKey = key.replace(".action", ".rule") as TranslationKey;
+      setAriaMsg(`${t(lang, key)}. ${t(lang, ruleKey)}`);
     }
   }, [game.lastAnnouncement, lang, sound]);
   
@@ -465,7 +476,10 @@ export function GameBoard() {
         </div>
 
         {/* Coaching layer: reads game/tutorial state only; gating is above. */}
-        <TutorialOverlay />
+        <TutorialOverlay
+          onContinue={useTutorial.getState().continueIntro}
+          onDismiss={useTutorial.getState().dismissHandoff}
+        />
       </div>
       
       <div className="sr-only" aria-live="polite" role="status">

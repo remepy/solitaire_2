@@ -14,7 +14,7 @@ import {
 // frame so every coordinate is a frame coordinate: scaling and RTL/LTR
 // mirroring come for free. This component only READS state — input gating
 // happens in the board's tap handler, so the layer is pointer-transparent
-// except for the real «הבנתי» button in HANDOFF.
+// except for the explanation buttons, whose callbacks are owned by Board.
 
 export const TUT_BUBBLE_TEXT_ID = "tut-bubble-text";
 
@@ -24,21 +24,18 @@ const CREAM = "#F7F1E3";
 const CUTOUT_PAD = 8;
 const CUTOUT_RADIUS = 12;
 
-// Bubble boxes (x, y, w) in the 844 × 390 frame, from the spec table (RTL).
-// Card-target bubbles sit over the never-mirrored tableau rows, so they keep
-// the same x in both languages; the stock bubble mirrors with the stock.
-const BUBBLE_BOX: Record<Exclude<TutStep, "idle" | "done">, { x: number; y: number; w: number; mirror: boolean }> = {
-  step1:   { x: 60,  y: 48,  w: 370, mirror: false },
-  step2:   { x: 390, y: 150, w: 390, mirror: true },
-  step3:   { x: 230, y: 48,  w: 300, mirror: false },
-  handoff: { x: (FRAME_W - 420) / 2, y: 60, w: 420, mirror: false },
-};
+// All explanations live below the tableau (which ends at y=240), in the
+// controls space opposite the piles. Neither cards nor piles are covered.
+// This space mirrors; card connectors still use physical tableau geometry.
+const BUBBLE_BOX = { x: 54, y: 260, w: 510, h: 112 };
 
 const STEP_COPY: Record<Exclude<TutStep, "idle" | "done">, { n: number | null; action: TranslationKey; rule: TranslationKey }> = {
-  step1:   { n: 1,    action: "tut.s1.action", rule: "tut.s1.rule" },
-  step2:   { n: 2,    action: "tut.s2.action", rule: "tut.s2.rule" },
-  step3:   { n: 3,    action: "tut.s3.action", rule: "tut.s3.rule" },
-  handoff: { n: null, action: "tut.s4.action", rule: "tut.s4.rule" },
+  intro:   { n: 1,    action: "tut.intro.action", rule: "tut.intro.rule" },
+  step1:   { n: 2,    action: "tut.s1.action", rule: "tut.s1.rule" },
+  step2:   { n: 3,    action: "tut.s2.action", rule: "tut.s2.rule" },
+  step3:   { n: 4,    action: "tut.s3.action", rule: "tut.s3.rule" },
+  step4:   { n: 5,    action: "tut.s4.action", rule: "tut.s4.rule" },
+  handoff: { n: null, action: "tut.handoff.action", rule: "tut.handoff.rule" },
 };
 
 function targetRect(target: TutTarget, lang: Lang): Rect {
@@ -51,30 +48,33 @@ function pad(r: Rect, p: number): Rect {
   return { left: r.left - p, top: r.top - p, width: r.width + 2 * p, height: r.height + 2 * p };
 }
 
-export function TutorialOverlay() {
+export function TutorialOverlay({ onContinue, onDismiss }: { onContinue: () => void; onDismiss: () => void }) {
   const step = useTutorial((s) => s.step);
-  const dismissHandoff = useTutorial((s) => s.dismissHandoff);
   const lang = useSettings((s) => s.lang);
   const reducedMotion = useReducedMotion();
   const doneBtnRef = useRef<HTMLButtonElement>(null);
 
-  // «הבנתי» is the first focusable element in HANDOFF (spec §5).
+  // Only informational steps focus a button; gameplay steps focus the card.
   useEffect(() => {
-    if (step === "handoff") doneBtnRef.current?.focus();
+    if (step === "intro" || step === "handoff") doneBtnRef.current?.focus({ preventScroll: true });
   }, [step]);
 
   if (step === "idle" || step === "done") return null;
 
   const isHandoff = step === "handoff";
+  const isIntro = step === "intro";
+  const hasButton = isIntro || isHandoff;
   const spotlights = spotlightTargets(step).map((tg) => pad(targetRect(tg, lang), CUTOUT_PAD));
-  const box = BUBBLE_BOX[step];
-  const bubbleX = box.mirror && lang === "en" ? FRAME_W - box.x - box.w : box.x;
+  const box = BUBBLE_BOX;
+  const bubbleX = lang === "en" ? FRAME_W - box.x - box.w : box.x;
   const copy = STEP_COPY[step];
+  const waste = getWasteRect(lang);
 
-  // Tail points at the top edge of the primary target.
+  // Connect to the real lower edge of the tableau target. A short bent line
+  // handles the English step-1 target outside the mirrored bubble's width.
   const primary = primaryTarget(step);
-  const target = primary ? targetRect(primary, lang) : null;
-  const tailX = target
+  const target = primary?.startsWith("card:") ? targetRect(primary, lang) : null;
+  const connectorX = target
     ? Math.min(box.w - 28, Math.max(28, target.left + target.width / 2 - bubbleX))
     : null;
 
@@ -100,6 +100,9 @@ export function TutorialOverlay() {
           <defs>
             <mask id={maskId}>
               <rect x="0" y="0" width={FRAME_W} height={FRAME_H} fill="white" />
+              {/* Inspecting "no moves" requires every tableau card at full
+                  brightness, not just a spotlight on the deck. */}
+              {step === "step2" && <rect x="46" y="38" width="752" height="210" rx="8" fill="black" />}
               {spotlights.map((r, i) => (
                 <rect key={i} x={r.left} y={r.top} width={r.width} height={r.height} rx={CUTOUT_RADIUS} fill="black" />
               ))}
@@ -115,20 +118,43 @@ export function TutorialOverlay() {
           ))}
         </svg>
       )}
+      {target && connectorX !== null && (
+        <svg className="absolute inset-0" width={FRAME_W} height={FRAME_H} aria-hidden="true">
+          <path
+            d={`M ${bubbleX + connectorX} ${box.y} L ${target.left + target.width / 2} ${target.top + target.height + CUTOUT_PAD}`}
+            stroke={GOLD} strokeWidth="3" fill="none" strokeLinecap="round"
+          />
+        </svg>
+      )}
+      {isIntro && (
+        <span
+          className="absolute w-4 h-4 rotate-45"
+          style={{ left: lang === "he" ? bubbleX + box.w - 8 : bubbleX - 8, top: waste.top + waste.height / 2 - 8, background: CREAM }}
+          aria-hidden="true"
+        />
+      )}
+      <div
+        className="absolute rounded-full text-[12px] leading-[18px] font-bold text-slate-900 text-center"
+        style={{ left: waste.left - 20, top: 362, width: 110, background: GOLD }}
+        data-testid="tutorial-reference-label"
+      >
+        {t(lang, "tut.reference")}
+      </div>
 
       {/* Coach bubble */}
       <div
         key={`bubble-${step}`}
         className={cn(
-          "absolute rounded-2xl shadow-lg px-5 py-3 text-slate-900",
-          isHandoff ? "pointer-events-auto" : "pointer-events-none",
+          "absolute rounded-2xl shadow-lg px-4 py-3 text-slate-900 flex items-center gap-4",
+          hasButton ? "pointer-events-auto" : "pointer-events-none",
           !reducedMotion && "animate-in fade-in duration-150"
         )}
-        style={{ left: bubbleX, top: box.y, width: box.w, background: CREAM }}
-        role={isHandoff ? "dialog" : undefined}
-        aria-labelledby={isHandoff ? TUT_BUBBLE_TEXT_ID : undefined}
+        style={{ left: bubbleX, top: box.y, width: box.w, minHeight: box.h, background: CREAM }}
+        role={hasButton ? "dialog" : undefined}
+        aria-labelledby={hasButton ? TUT_BUBBLE_TEXT_ID : undefined}
         dir={lang === "he" ? "rtl" : "ltr"}
         data-testid="tutorial-bubble"
+        data-tut-interactive
       >
         {copy.n !== null && (
           <span
@@ -140,32 +166,25 @@ export function TutorialOverlay() {
           </span>
         )}
 
-        <div id={TUT_BUBBLE_TEXT_ID} className="text-[18px] leading-snug">
+        <div id={TUT_BUBBLE_TEXT_ID} className="flex-1 min-w-0 text-[17px] leading-[22px]">
           <div className="font-bold">{t(lang, copy.action)}</div>
           <div>{t(lang, copy.rule)}</div>
         </div>
 
-        {isHandoff && (
-          <div className="mt-3 flex justify-center">
+        {hasButton && (
+          <div className="shrink-0 flex justify-center">
             <button
               ref={doneBtnRef}
               type="button"
-              onClick={dismissHandoff}
+              onClick={isIntro ? onContinue : onDismiss}
               className="min-w-[150px] h-[58px] px-6 rounded-full font-bold text-[18px] text-slate-900 shadow active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-500"
               style={{ background: GOLD }}
-              data-testid="tutorial-done"
+              data-testid={isIntro ? "tutorial-next" : "tutorial-done"}
+              data-tut-interactive
             >
-              {t(lang, "tut.done")}
+              {t(lang, isIntro ? "tut.next" : "tut.done")}
             </button>
           </div>
-        )}
-
-        {tailX !== null && (
-          <span
-            className="absolute -bottom-2 w-4 h-4 rotate-45"
-            style={{ left: tailX - 8, background: CREAM }}
-            aria-hidden="true"
-          />
         )}
       </div>
     </div>

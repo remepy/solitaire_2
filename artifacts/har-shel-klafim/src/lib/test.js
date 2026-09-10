@@ -99,8 +99,13 @@ console.log("wild,    stock 23:", stats(true, 1000));
   assert.strictEqual(d.stock[d.stock.length - 1], d.script.step2_draws, "first draw must be the scripted card");
   assert.deepStrictEqual(legal(d.script.step2_draws), [d.script.step3_target], "exactly one legal move after the draw");
   played[d.script.step3_target] = true;
-  for (let i = 0; i < 18; i++) assert.ok(!coveredBy[i].every(b => played[b]), "no card flips before handoff");
-  assert.ok(legal(d.tableau[d.script.step3_target]).length >= 2, "handoff must offer real choice");
+  for (let i = 0; i < 18; i++) assert.ok(!coveredBy[i].every(b => played[b]), "no card flips before the Ace lesson");
+  assert.deepStrictEqual(legal(d.tableau[d.script.step3_target]), [d.script.step4_target, 27], "Ace must allow both 2 and King");
+  assert.strictEqual(d.tableau[d.script.step4_target], "2H", "the extra guided move demonstrates Ace to 2");
+  assert.ok(adj("7C", "6H") && adj("7C", "8C"), "both one lower and one higher are legal");
+  assert.ok(adj("AD", "2H") && adj("2H", "AD") && adj("AD", "KC") && adj("KC", "AD"), "Ace connects to King and 2 in both directions");
+  played[d.script.step4_target] = true;
+  assert.ok(legal(d.tableau[d.script.step4_target]).length > 0 || d.stock.length > 1, "normal play or a stock draw remains possible after the extra move");
   assert.strictEqual(isSolvable(d.tableau.map(rank), d.stock.map(rank).reverse(), rank(d.waste)), true, "tutorial deal solvable");
   console.log("tutorial deal OK");
 }

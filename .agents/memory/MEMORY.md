@@ -1,2 +1,2 @@
 - [Card flip transform origin](rtl-animated-card-anchors.md) — rotateY flips must use center origin; a corner origin offsets face-down cards by one card width and breaks the coverage illusion.
-- [Tutorial & layering decisions](tutorial-layering-decisions.md) — card bubbles don't mirror in LTR (tableau is physical); gating in board handler; full-frame layers must be pointer-transparent; stock order for solver.
+- [Tutorial & layering decisions](tutorial-layering-decisions.md) — keep teaching prompts off the tableau; anchor to physical cards; preserve shared game logic and pointer-transparent layers.

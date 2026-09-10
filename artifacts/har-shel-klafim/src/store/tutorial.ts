@@ -6,14 +6,14 @@ import tutorialDealJson from "@/lib/tutorial_deal.json";
 // The tutorial is a layer on top of a normal game, not a separate mode. The
 // scripted deal loads through the same `loadDeal` path as a generated deal.
 //
-// State machine (tutorial spec §3):
-//   idle → step1 →(card 20 played)→ step2 →(stock drawn)→ step3
-//        →(card 23 played)→ handoff →(«הבנתי» OR any play)→ done
+// State machine:
+//   idle → intro →(Next)→ step1 →(card 20 played)→ step2 →(stock drawn)→ step3
+//        →(card 23 played)→ step4 →(card 22 played)→ handoff →(Got it OR any play)→ done
 //
-// Steps advance on real game moves (`game.lastMove`), never on taps, so a
-// tap the game rejected can never advance the tutorial.
+// Gameplay steps advance on real moves (`game.lastMove`), never raw taps.
+// Only the introductory explanation uses a Next button.
 
-export type TutStep = "idle" | "step1" | "step2" | "step3" | "handoff" | "done";
+export type TutStep = "idle" | "intro" | "step1" | "step2" | "step3" | "step4" | "handoff" | "done";
 
 /** Element identifiers used for input gating and spotlights. */
 export type TutTarget = `card:${number}` | "stock" | "waste";
@@ -22,6 +22,7 @@ export interface TutorialScript {
   step1_target: number;
   step2_draws: string;
   step3_target: number;
+  step4_target: number;
 }
 
 export interface TutorialDeal extends OriginalDeal {
@@ -39,27 +40,32 @@ export const TUTORIAL_DEAL_ID = TUTORIAL_DEAL.deal_id;
 
 const script = TUTORIAL_DEAL.script;
 
-export const GUIDED_STEPS: ReadonlySet<TutStep> = new Set(["step1", "step2", "step3"]);
+export const GUIDED_STEPS: ReadonlySet<TutStep> = new Set(["intro", "step1", "step2", "step3", "step4"]);
 
 /** Elements the player may interact with in each guided step. */
 const ALLOWED: Partial<Record<TutStep, TutTarget[]>> = {
+  intro: [],
   step1: [`card:${script.step1_target}`],
   step2: ["stock"],
   step3: [`card:${script.step3_target}`],
+  step4: [`card:${script.step4_target}`],
 };
 
 /** Elements cut out of the dim mask in each guided step. */
 const SPOTLIGHT: Partial<Record<TutStep, TutTarget[]>> = {
+  intro: ["waste"],
   step1: [`card:${script.step1_target}`, "waste"],
-  step2: ["stock"],
+  step2: ["stock", "waste"],
   step3: [`card:${script.step3_target}`, "waste"],
+  step4: [`card:${script.step4_target}`, "waste"],
 };
 
 export interface TutorialState {
   step: TutStep;
-  /** Start (or restart) the tutorial: loads the fixed deal, enters STEP1. */
+  /** Start (or restart) the tutorial through the normal deal-loading path. */
   start: () => void;
-  /** Close bubble 4 without waiting for the next play. */
+  continueIntro: () => void;
+  /** Close the final explanation without waiting for the next play. */
   dismissHandoff: () => void;
 }
 
@@ -69,8 +75,9 @@ export const useTutorial = create<TutorialState>((set) => ({
     // Strip the script block: the game store only knows the deal shape.
     const { script: _script, verified_solvable: _v, ...deal } = TUTORIAL_DEAL;
     useGame.getState().loadDeal(deal);
-    set({ step: "step1" });
+    set({ step: "intro" });
   },
+  continueIntro: () => set((s) => (s.step === "intro" ? { step: "step1" } : s)),
   dismissHandoff: () => set((s) => (s.step === "handoff" ? { step: "done" } : s)),
 }));
 
@@ -93,6 +100,8 @@ const unsubscribe = useGame.subscribe((state, prev) => {
   } else if (step === "step2" && move.type === "draw") {
     useTutorial.setState({ step: "step3" });
   } else if (step === "step3" && move.type === "play" && move.idx === script.step3_target) {
+    useTutorial.setState({ step: "step4" });
+  } else if (step === "step4" && move.type === "play" && move.idx === script.step4_target) {
     // Persist exactly on entering HANDOFF (spec §3.5).
     useSettings.getState().setTutorialSeen(true);
     useTutorial.setState({ step: "handoff" });

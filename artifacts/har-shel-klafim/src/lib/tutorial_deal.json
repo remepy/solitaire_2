@@ -5,5 +5,5 @@
               "JS","10D","8C","4H","2H","AD","JC","10C","10H","KC"],
   "stock":   ["9H","5D","2D","KS","AH","4D","JH","3S","5H","7D","AS","QC","3C","QH","4C","AC","3D","QD","7H","5S","3H","6S","KH"],
   "waste":   "7C",
-  "script":  { "step1_target": 20, "step2_draws": "KH", "step3_target": 23 }
+  "script":  { "step1_target": 20, "step2_draws": "KH", "step3_target": 23, "step4_target": 22 }
 }
