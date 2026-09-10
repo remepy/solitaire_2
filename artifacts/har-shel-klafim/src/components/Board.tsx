@@ -11,7 +11,7 @@ import { useIsRotated } from "@/hooks/useIsRotated";
 import { TutorialOverlay, TUT_BUBBLE_TEXT_ID } from "./TutorialOverlay";
 import { TutorialRestartDialog } from "./TutorialRestartDialog";
 import { useTutorial, isGuidedStep, isAllowed, primaryTarget, type TutTarget } from "@/store/tutorial";
-import { FRAME_W, FRAME_H, getCardPos, getStockPos, getStockTapRect, getWastePos } from "@/lib/layout";
+import { FRAME_W, FRAME_H, PLAY_BOUNDS, getBoardScale, getCardPos, getStockPos, getStockTapRect, getWastePos } from "@/lib/layout";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const TUT_TEXT_KEYS = {
@@ -170,11 +170,8 @@ export function GameBoard() {
     // Measure the safe content box, not the full viewport. Native safe-area
     // padding handles BOTH landscape directions without guessing the notch
     // side from screen.orientation or applying a second sideways offset.
-    const EDGE_MARGIN = 8;
     const fit = (width: number, height: number) => {
-      const availableW = Math.min(Math.max(0, width - EDGE_MARGIN * 2), 932);
-      const availableH = Math.max(0, height - EDGE_MARGIN * 2);
-      setScale(Math.min(availableW / FRAME_W, availableH / FRAME_H));
+      setScale(getBoardScale(width, height));
     };
     // Fit before the first visible paint, then track rotation, safe-area and
     // browser-chrome size changes via the stage's content box.
@@ -302,7 +299,8 @@ export function GameBoard() {
       if (displayStatuses[i] === "uncovered" && isAdjacent(wasteTop, game.tableau[i])) handoffGlow.add(i);
     }
   }
-  const glowClass = "ring-4 ring-primary ring-offset-2 ring-offset-background scale-[1.05]";
+  // A hint changes the outline, not the geometry or neighboring tap targets.
+  const glowClass = "ring-4 ring-primary ring-offset-2 ring-offset-background";
   const controlsDim = guided ? "opacity-40" : "";
 
   return (
@@ -322,15 +320,25 @@ export function GameBoard() {
       dir={lang === "he" ? "rtl" : "ltr"}
       lang={lang}
     >
+      <div
+        className="relative shrink-0"
+        style={{ width: PLAY_BOUNDS.width * scale, height: PLAY_BOUNDS.height * scale }}
+        data-testid="game-play-area"
+      >
       <div 
         className={cn(
-          "relative shrink-0 origin-center",
+          "absolute origin-top-left",
           isPortrait ? "pointer-events-none" : ""
         )}
-        // Keep the coordinate frame full-size even when it is wider than the
-        // safe area. ONLY the shared transform may scale cards and overlays;
-        // flex-shrink would change the RTL SVG origin without moving cards.
-        style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${scale})` }}
+        // Center the occupied area while retaining one fixed coordinate frame
+        // for cards AND highlights. No clipping or per-device sideways offset.
+        style={{
+          width: FRAME_W,
+          height: FRAME_H,
+          left: -PLAY_BOUNDS.left * scale,
+          top: -PLAY_BOUNDS.top * scale,
+          transform: `scale(${scale})`,
+        }}
         data-testid="game-frame"
         aria-hidden={isPortrait}
         inert={isPortrait ? true : undefined}
@@ -494,6 +502,7 @@ export function GameBoard() {
           onContinue={useTutorial.getState().continueIntro}
           onDismiss={useTutorial.getState().dismissHandoff}
         />
+      </div>
       </div>
       
       <div className="sr-only" aria-live="polite" role="status">

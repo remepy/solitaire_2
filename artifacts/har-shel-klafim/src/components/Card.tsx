@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/store/settings";
 import { t } from "@/lib/i18n";
 import { motion } from "framer-motion";
+import { CARD_HIT_X, CARD_HIT_Y } from "@/lib/layout";
 
 export interface PlayingCardProps {
   code: string;
@@ -56,9 +57,14 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
   const details = getCardDetails(code, lang);
   
   const [touchStart, setTouchStart] = useState<{x: number, y: number} | null>(null);
+  const hitAreaRef = useRef<HTMLDivElement>(null);
   
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     if ('touches' in e) {
+      if (e.touches.length !== 1) {
+        setTouchStart(null);
+        return;
+      }
       setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
     } else {
       setTouchStart({ x: e.clientX, y: e.clientY });
@@ -67,6 +73,7 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
   
   const handleTouchEnd = (e: React.TouchEvent | React.MouseEvent) => {
     if (!touchStart || !onClick) return;
+    setTouchStart(null);
     
     let endX, endY;
     if ('changedTouches' in e && e.changedTouches.length > 0) {
@@ -80,11 +87,18 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
     }
     
     const dist = Math.hypot(endX - touchStart.x, endY - touchStart.y);
-    if (dist < 24) { // 24pt slop tolerance
+    const bounds = hitAreaRef.current?.getBoundingClientRect();
+    const stillOnCard = bounds &&
+      endX >= bounds.left && endX <= bounds.right &&
+      endY >= bounds.top && endY <= bounds.bottom;
+    const releaseTarget = document.elementFromPoint(endX, endY)?.closest("[data-tut-interactive]");
+    // Keep the existing small-slip allowance, but never activate this card
+    // when the finger ends on another control. Movement within the same card
+    // is accepted regardless of distance, so a tremor doesn't cancel a tap.
+    if ((stillOnCard || dist < 24) && (!releaseTarget || releaseTarget === e.currentTarget)) {
       e.preventDefault();
       onClick();
     }
-    setTouchStart(null);
   };
 
   const isFaceUp = status !== "face-down" && status !== "stock";
@@ -126,6 +140,7 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
       dir="ltr"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={() => setTouchStart(null)}
       onMouseDown={handleTouchStart}
       onMouseUp={handleTouchEnd}
       onKeyDown={(e) => {
@@ -143,8 +158,17 @@ export function PlayingCard({ code, status, onClick, className, isWaste, isStock
       data-tut-interactive={onClick ? true : undefined}
       data-testid={`card-${status}-${code}`}
     >
-      {/* Extended Hit Area */}
-      {onClick && <div className="absolute inset-[-2px] rounded-xl z-10" />}
+      {/* Fill the horizontal gaps, and use spare space above/below the card.
+          Keep this rectangular and unscaled so neighboring targets never overlap. */}
+      {onClick && (
+        <div
+          ref={hitAreaRef}
+          className="absolute z-10"
+          style={{ left: -CARD_HIT_X, right: -CARD_HIT_X, top: -CARD_HIT_Y, bottom: -CARD_HIT_Y }}
+          data-card-hit-zone
+          aria-hidden="true"
+        />
+      )}
 
       {/* Card Inner Wrapper for Flip */}
       <div 

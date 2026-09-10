@@ -9,12 +9,29 @@ export const FRAME_W = 844;
 export const FRAME_H = 390;
 export const CARD_W = 70;
 export const CARD_H = 98;
+// Adjacent cards are 4px apart. Split that gap equally so an imprecise
+// tap never has two neighboring targets competing for it.
+export const CARD_HIT_X = 2;
+export const CARD_HIT_Y = 6;
 
 export interface Rect {
   left: number;
   top: number;
   width: number;
   height: number;
+}
+
+// Fit the occupied area, not the unused margins of the logical frame.
+// Includes the header focus outline, card rings, pile counter and tutorial
+// reference label in BOTH languages. The logical 844×390 layout stays intact.
+export const PLAY_BOUNDS: Rect = { left: 38, top: -4, width: 772, height: 388 };
+
+export function getBoardScale(safeWidth: number, safeHeight: number) {
+  const edgeMargin = 4;
+  return Math.min(
+    Math.min(Math.max(0, safeWidth - edgeMargin * 2), 932) / PLAY_BOUNDS.width,
+    Math.max(0, safeHeight - edgeMargin * 2) / PLAY_BOUNDS.height,
+  );
 }
 
 const TABLEAU_U_VALUES = [
@@ -44,6 +61,16 @@ export function getCardPos(idx: number) {
 export function getCardRect(idx: number): Rect {
   const { left, top } = getCardPos(idx);
   return { left, top, width: CARD_W, height: CARD_H };
+}
+
+export function getCardHitRect(idx: number): Rect {
+  const r = getCardRect(idx);
+  return {
+    left: r.left - CARD_HIT_X,
+    top: r.top - CARD_HIT_Y,
+    width: r.width + 2 * CARD_HIT_X,
+    height: r.height + 2 * CARD_HIT_Y,
+  };
 }
 
 export function getStockPos(lang: Lang) {
