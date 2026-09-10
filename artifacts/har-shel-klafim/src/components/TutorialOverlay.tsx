@@ -84,6 +84,7 @@ export function TutorialOverlay({ onContinue, onDismiss }: { onContinue: () => v
   return (
     <div
       className="absolute inset-0 pointer-events-none z-[400]"
+      dir="ltr"
       data-testid={`tutorial-overlay-${step}`}
       aria-live="off"
     >
@@ -91,14 +92,14 @@ export function TutorialOverlay({ onContinue, onDismiss }: { onContinue: () => v
       {!isHandoff && (
         <svg
           key={maskId}
-          className={cn("absolute inset-0", fade, !reducedMotion && "animate-in fade-in duration-150")}
+          className={cn("absolute left-0 top-0", fade, !reducedMotion && "animate-in fade-in duration-150")}
           width={FRAME_W}
           height={FRAME_H}
           viewBox={`0 0 ${FRAME_W} ${FRAME_H}`}
           aria-hidden="true"
         >
           <defs>
-            <mask id={maskId}>
+            <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={FRAME_W} height={FRAME_H}>
               <rect x="0" y="0" width={FRAME_W} height={FRAME_H} fill="white" />
               {/* Inspecting "no moves" requires every tableau card at full
                   brightness, not just a spotlight on the deck. */}
@@ -119,7 +120,7 @@ export function TutorialOverlay({ onContinue, onDismiss }: { onContinue: () => v
         </svg>
       )}
       {target && connectorX !== null && (
-        <svg className="absolute inset-0" width={FRAME_W} height={FRAME_H} aria-hidden="true">
+        <svg className="absolute left-0 top-0" width={FRAME_W} height={FRAME_H} aria-hidden="true">
           <path
             d={`M ${bubbleX + connectorX} ${box.y} L ${target.left + target.width / 2} ${target.top + target.height + CUTOUT_PAD}`}
             stroke={GOLD} strokeWidth="3" fill="none" strokeLinecap="round"

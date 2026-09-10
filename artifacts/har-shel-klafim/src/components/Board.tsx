@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PlayingCard } from "./Card";
 import { useGame, isAdjacent, computeUncovered } from "@/store/game";
 import { useSettings } from "@/store/settings";
@@ -11,7 +11,7 @@ import { useIsRotated } from "@/hooks/useIsRotated";
 import { TutorialOverlay, TUT_BUBBLE_TEXT_ID } from "./TutorialOverlay";
 import { TutorialRestartDialog } from "./TutorialRestartDialog";
 import { useTutorial, isGuidedStep, isAllowed, primaryTarget, type TutTarget } from "@/store/tutorial";
-import { getCardPos, getStockPos, getWastePos } from "@/lib/layout";
+import { FRAME_W, FRAME_H, getCardPos, getStockPos, getStockTapRect, getWastePos } from "@/lib/layout";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const TUT_TEXT_KEYS = {
@@ -162,45 +162,35 @@ export function GameBoard() {
 
   const stageRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const boardReady = game.originalDeal !== null;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
-    // Measure the content box inside the safe-area padding so the board
-    // always fits between hardware intrusions (Dynamic Island, home
-    // indicator) instead of scaling to the raw screen size. A small
-    // breathing margin keeps the board visually off the device edges;
-    // at ~8px per side the scale drops only ~2%, so hit targets stay
-    // effectively the same physical size.
+    // Measure the safe content box, not the full viewport. Native safe-area
+    // padding handles BOTH landscape directions without guessing the notch
+    // side from screen.orientation or applying a second sideways offset.
     const EDGE_MARGIN = 8;
-    const observer = new ResizeObserver((entries) => {
-      const { width, height } = entries[0].contentRect;
+    const fit = (width: number, height: number) => {
       const availableW = Math.min(Math.max(0, width - EDGE_MARGIN * 2), 932);
       const availableH = Math.max(0, height - EDGE_MARGIN * 2);
-      setScale(Math.min(availableW / 844, availableH / 390));
+      setScale(Math.min(availableW / FRAME_W, availableH / FRAME_H));
+    };
+    // Fit before the first visible paint, then track rotation, safe-area and
+    // browser-chrome size changes via the stage's content box.
+    const padding = getComputedStyle(stage);
+    fit(
+      stage.clientWidth - parseFloat(padding.paddingLeft) - parseFloat(padding.paddingRight),
+      stage.clientHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom),
+    );
+    const observer = new ResizeObserver(([entry]) => {
+      fit(entry.contentRect.width, entry.contentRect.height);
     });
     observer.observe(stage);
     return () => observer.disconnect();
-  }, []);
-  
-  // Extra edge margin follows the hardware intrusion (Dynamic Island):
-  // landscape-primary = device top/island on the left → shift board right;
-  // landscape-secondary = island on the right → shift board left.
-  // Desktop (no coarse pointer) keeps the default left shift.
-  const [islandOnLeft, setIslandOnLeft] = useState(false);
-  useEffect(() => {
-    if (!window.matchMedia("(pointer: coarse)").matches) return;
-    const update = () => {
-      setIslandOnLeft(window.screen.orientation?.type === "landscape-primary");
-    };
-    update();
-    window.screen.orientation?.addEventListener("change", update);
-    window.addEventListener("orientationchange", update);
-    return () => {
-      window.screen.orientation?.removeEventListener("change", update);
-      window.removeEventListener("orientationchange", update);
-    };
-  }, []);
+    // The initial render has no deal and returns null. Attach the observer
+    // when the stage actually mounts, not only on GameBoard's first render.
+  }, [boardReady]);
 
   const [hintIdx, setHintIdx] = useState<number | null>(null);
   const hintTimer = useRef<number | null>(null);
@@ -302,6 +292,7 @@ export function GameBoard() {
   const displayStatuses = computeUncovered(game.tableauStatus);
 
   const { left: stockLeft, top: stockTop } = getStockPos(lang);
+  const stockTapRect = getStockTapRect(lang);
   const { left: wasteLeft, top: wasteTopPos } = getWastePos(lang);
 
   // HANDOFF shows the legal cards glowing until the player's next move.
@@ -317,6 +308,7 @@ export function GameBoard() {
   return (
     <div 
       ref={stageRef}
+      data-testid="game-stage"
       className={cn(
         "fixed inset-0 bg-background text-foreground flex items-center justify-center overflow-hidden touch-none",
         ""
@@ -332,15 +324,14 @@ export function GameBoard() {
     >
       <div 
         className={cn(
-          "relative w-[844px] h-[390px] origin-center",
+          "relative shrink-0 origin-center",
           isPortrait ? "pointer-events-none" : ""
         )}
-        // translateX is applied in screen space (before the scale), so the
-        // board shifts a true 20px for optical balance against the device's
-        // edge intrusion. The direction follows the intrusion side, so
-        // rotating the phone 180° mirrors the margin. Content has ~46px
-        // clearance on both sides, so nothing clips.
-        style={{ transform: `translateX(${islandOnLeft ? 20 : -20}px) scale(${scale})` }}
+        // Keep the coordinate frame full-size even when it is wider than the
+        // safe area. ONLY the shared transform may scale cards and overlays;
+        // flex-shrink would change the RTL SVG origin without moving cards.
+        style={{ width: FRAME_W, height: FRAME_H, transform: `scale(${scale})` }}
+        data-testid="game-frame"
         aria-hidden={isPortrait}
         inert={isPortrait ? true : undefined}
         onClick={onFrameClick}
@@ -441,7 +432,7 @@ export function GameBoard() {
               "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary",
               rejected === "stock" && !reducedMotion && "tut-wiggle"
             )}
-            style={{ insetInlineStart: 44 }}
+            style={{ left: stockTapRect.left }}
             onClick={withDebounce(gated("stock", game.drawStock))}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
