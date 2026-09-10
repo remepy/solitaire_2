@@ -31,6 +31,7 @@ export function GameBoard() {
   const tutStep = useTutorial((s) => s.step);
   const startTutorial = useTutorial((s) => s.start);
   const guided = isGuidedStep(tutStep);
+  const tutorialVisible = tutStep !== "idle" && tutStep !== "done";
   const tutTarget = guided ? primaryTarget(tutStep) : null;
 
   // Restarting the tutorial replaces the deal, so a round already in progress
@@ -189,7 +190,7 @@ export function GameBoard() {
     // when the stage actually mounts, not only on GameBoard's first render.
   }, [boardReady]);
 
-  const [hintIdx, setHintIdx] = useState<number | null>(null);
+  const [hintTarget, setHintTarget] = useState<TutTarget | "continue" | null>(null);
   const hintTimer = useRef<number | null>(null);
 
   const clearHint = () => {
@@ -197,19 +198,43 @@ export function GameBoard() {
       clearTimeout(hintTimer.current);
       hintTimer.current = null;
     }
-    setHintIdx(null);
+    setHintTarget(null);
   };
 
   // A hint glow must never outlive the deal it belongs to: loading another
   // deal (a new game, or an on-demand tutorial restart) would otherwise leave
-  // an unrelated card glowing for the rest of the 1.5s timeout.
+  // an unrelated card glowing for the rest of the timeout. Also clear the
+  // cue as soon as a move or lesson change makes its target obsolete.
   useEffect(() => clearHint, []);
   useEffect(() => {
     clearHint();
-  }, [game.originalDeal]);
+  }, [game.originalDeal, game.lastMove, tutStep]);
+
+  const showHint = (target: TutTarget | "continue", message: string) => {
+    setHintTarget(target);
+    setAriaMsg(message);
+    if (hintTimer.current !== null) clearTimeout(hintTimer.current);
+    hintTimer.current = window.setTimeout(() => {
+      hintTimer.current = null;
+      setHintTarget(null);
+    }, 2500);
+    playSound("tap");
+  };
 
   const handleHint = () => {
     if (game.isWon || game.isLost) return;
+    // Hints explain the current lesson; they never choose an out-of-script
+    // move, mutate the deal, or advance the tutorial.
+    if (guided) {
+      if (tutStep === "intro") {
+        showHint("continue", t(lang, "tut.hintContinue"));
+      } else if (tutTarget) {
+        const key = TUT_TEXT_KEYS[tutStep as keyof typeof TUT_TEXT_KEYS];
+        const ruleKey = key.replace(".action", ".rule") as TranslationKey;
+        showHint(tutTarget, `${t(lang, key)}. ${t(lang, ruleKey)}`);
+      }
+      return;
+    }
     const topWaste = game.waste[game.waste.length - 1];
     const legalIndices = [];
     for (let i=0; i<28; i++) {
@@ -233,13 +258,9 @@ export function GameBoard() {
         }
       }
       const chosen = bestIndices[Math.floor(Math.random() * bestIndices.length)];
-      setHintIdx(chosen);
-      if (hintTimer.current !== null) clearTimeout(hintTimer.current);
-      hintTimer.current = window.setTimeout(() => {
-        hintTimer.current = null;
-        setHintIdx(null);
-      }, 1500);
-      playSound("tap");
+      showHint(`card:${chosen}`, t(lang, "a11y.hint", { card: game.tableau[chosen] }));
+    } else if (game.stock.length > 0) {
+      showHint("stock", t(lang, "a11y.noMoves"));
     } else {
       setAriaMsg(t(lang, "a11y.noMoves"));
       playSound("error");
@@ -301,7 +322,26 @@ export function GameBoard() {
   }
   // A hint changes the outline, not the geometry or neighboring tap targets.
   const glowClass = "ring-4 ring-primary ring-offset-2 ring-offset-background";
+  // A requested hint is distinct from the tutorial's permanent gold outline.
+  // No pulse, movement or scale change: keep the tap target steady.
+  const hintClass = "outline outline-4 outline-offset-4 outline-white";
   const controlsDim = guided ? "opacity-40" : "";
+  const hintButton = (
+    <button
+      onClick={withDebounce(handleHint)}
+      disabled={game.isWon || game.isLost}
+      className={cn(
+        "flex items-center justify-center gap-2 bg-secondary text-secondary-foreground font-semibold rounded-full hover:bg-secondary/80 transition-colors active:scale-95 pointer-events-auto disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
+        tutorialVisible ? "w-[100px] h-[44px]" : "w-[150px] h-[58px] z-[200]",
+      )}
+      aria-label={t(lang, "btn.hint")}
+      data-testid="btn-hint"
+      data-tut-interactive
+    >
+      <Lightbulb className="w-5 h-5" />
+      <span>{t(lang, "btn.hint")}</span>
+    </button>
+  );
 
   return (
     <div 
@@ -344,14 +384,16 @@ export function GameBoard() {
         inert={isPortrait ? true : undefined}
         onClick={onFrameClick}
       >
-        {/* Header strip. No HUD here: score and streak are still tracked in the
-            game store for scoring logic, but nothing about them is shown. The
-            only control is the on-demand tutorial. */}
-        <div className="absolute top-0 inset-x-0 h-[46px] flex items-center px-[54px] z-[200]">
+        {/* During coaching, keep Hint outside the bubble covering the controls.
+            The strip itself stays pointer-transparent and above the dim mask. */}
+        <div className={cn(
+          "absolute top-0 inset-x-0 h-[46px] flex items-center justify-between px-[54px] pointer-events-none",
+          tutorialVisible ? "z-[500]" : "z-[200]",
+        )}>
           <button
             onClick={withDebounce(gatedControl(requestTutorial))}
             className={cn(
-              "h-[38px] px-4 flex items-center rounded-full text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:scale-95",
+              "h-[38px] px-4 flex items-center rounded-full text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:scale-95 pointer-events-auto",
               controlsDim,
               rejected === "controls" && !reducedMotion && "tut-wiggle",
             )}
@@ -362,6 +404,7 @@ export function GameBoard() {
           >
             {t(lang, "btn.tutorial")}
           </button>
+          {tutorialVisible && hintButton}
         </div>
 
         {/* The tableau is a physical, never-mirrored coordinate system.
@@ -374,7 +417,7 @@ export function GameBoard() {
             const position = getCardPos(index);
             const target: TutTarget = `card:${index}`;
             const isTutTarget = tutTarget === target;
-            const isHinted = index === hintIdx || isTutTarget || handoffGlow.has(index);
+            const isHinted = hintTarget === target || isTutTarget || handoffGlow.has(index);
             return (
               <PlayingCard
                 key={`tableau-${index}`}
@@ -391,7 +434,7 @@ export function GameBoard() {
                 zIndex={isTutTarget ? 450 : status === "uncovered" ? 100 + index : index}
                 left={position.left}
                 top={position.top}
-                className={isHinted ? glowClass : ""}
+                className={cn(isHinted && glowClass, hintTarget === target && hintClass)}
                 ariaDescribedBy={isTutTarget ? TUT_BUBBLE_TEXT_ID : undefined}
                 ariaDisabled={guided && !isTutTarget}
                 wiggle={rejected === target}
@@ -437,7 +480,9 @@ export function GameBoard() {
             id="stock-area"
             className={cn(
               "absolute top-[11px] z-[180] w-[100px] h-[110px] rounded-xl border-2 border-dashed border-muted flex items-center justify-center cursor-pointer",
-              "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary",
+               "focus-visible:ring-4 focus-visible:ring-primary",
+               hintTarget !== "stock" && "focus:outline-none",
+               hintTarget === "stock" && hintClass,
               rejected === "stock" && !reducedMotion && "tut-wiggle"
             )}
             style={{ left: stockTapRect.left }}
@@ -483,17 +528,7 @@ export function GameBoard() {
               <span>{t(lang, "btn.undo")}</span>
             </button>
             
-            <button
-              onClick={withDebounce(gatedControl(handleHint))}
-              className={cn("w-[150px] h-[58px] flex items-center justify-center gap-2 bg-secondary text-secondary-foreground font-semibold rounded-full hover:bg-secondary/80 transition-colors active:scale-95 z-[200]", controlsDim, rejected === "controls" && !reducedMotion && "tut-wiggle")}
-              aria-label={t(lang, "btn.hint")}
-              aria-disabled={guided || undefined}
-              data-testid="btn-hint"
-              data-tut-interactive
-            >
-              <Lightbulb className="w-5 h-5" />
-              <span>{t(lang, "btn.hint")}</span>
-            </button>
+            {!tutorialVisible && hintButton}
           </div>
         </div>
 
@@ -501,6 +536,7 @@ export function GameBoard() {
         <TutorialOverlay
           onContinue={useTutorial.getState().continueIntro}
           onDismiss={useTutorial.getState().dismissHandoff}
+          hintContinue={hintTarget === "continue"}
         />
       </div>
       </div>

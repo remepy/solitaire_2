@@ -48,7 +48,7 @@ function pad(r: Rect, p: number): Rect {
   return { left: r.left - p, top: r.top - p, width: r.width + 2 * p, height: r.height + 2 * p };
 }
 
-export function TutorialOverlay({ onContinue, onDismiss }: { onContinue: () => void; onDismiss: () => void }) {
+export function TutorialOverlay({ onContinue, onDismiss, hintContinue = false }: { onContinue: () => void; onDismiss: () => void; hintContinue?: boolean }) {
   const step = useTutorial((s) => s.step);
   const lang = useSettings((s) => s.lang);
   const reducedMotion = useReducedMotion();
@@ -178,7 +178,10 @@ export function TutorialOverlay({ onContinue, onDismiss }: { onContinue: () => v
               ref={doneBtnRef}
               type="button"
               onClick={isIntro ? onContinue : onDismiss}
-              className="min-w-[150px] h-[58px] px-6 rounded-full font-bold text-[18px] text-slate-900 shadow active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-500"
+              className={cn(
+                "min-w-[150px] h-[58px] px-6 rounded-full font-bold text-[18px] text-slate-900 shadow active:scale-95 focus-visible:ring-4 focus-visible:ring-amber-500",
+                hintContinue && "outline outline-4 outline-offset-4 outline-slate-900",
+              )}
               style={{ background: GOLD }}
               data-testid={isIntro ? "tutorial-next" : "tutorial-done"}
               data-tut-interactive

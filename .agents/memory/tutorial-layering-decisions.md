@@ -29,7 +29,7 @@ The tableau container spans the whole 844×390 frame and sits above other contro
 **How to apply:** any new full-frame layer (overlays, dim masks) should be pointer-transparent unless it owns a real control.
 
 ## No score, streak, or settings surface for the player
-Scoring and streak state may exist in the store (undo history depends on it), but nothing about them may reach the screen — no HUD, no end-of-round score line, no settings entry point. The header strip holds only the on-demand tutorial button.
+Scoring and streak state may exist in the store (undo history depends on it), but nothing about them may reach the screen — no HUD, no end-of-round score line, no settings entry point. The header is reserved for tutorial-related controls, not a HUD.
 **Why:** The user asked for a calm board with only the cards and the play controls, and said the scoring logic could stay only if it stays invisible.
 **How to apply:** Do not reintroduce a HUD or a gear/menu button without the user asking. Preferences (language, theme, sound, text size, reduced motion) still live in the settings store and apply from their defaults; if any of them ever needs to be user-changeable again, get the user's decision on the entry point first. Tableau rows start at y=46, so the header strip must stay that height.
 
@@ -37,3 +37,8 @@ Scoring and streak state may exist in the store (undo history depends on it), bu
 It starts by itself only on a player's first launch, gated by a persisted flag that is written when the player reaches the final handoff step; abandoning it early leaves it unset so it runs again. Afterwards it is reachable from the header button.
 **Why:** The user asked for once-per-user behaviour plus an explicit way to see it again. An earlier build had a "run every round" testing toggle — do not reintroduce one; use the button instead.
 **How to apply:** Restarting the tutorial loads the scripted deal and discards the round in progress, so confirm first whenever the player has already made a move. Component-local timers such as the hint glow must be cleared when the deal changes, since the game store cannot reset them.
+
+## Hints remain available during coaching
+Hints explain the current lesson without performing a move or advancing the tutorial. Keep the control visible outside the coaching bubble, and use the scripted action during guided steps rather than the normal move optimizer.
+**Why:** The user reported Hint being inactive in the tutorial; treating non-mutating help like a forbidden game action made the teaching flow less usable.
+**How to apply:** Exempt help from gameplay input gating. Cover informational steps, drawing from the deck, guided card plays and the final handoff. A cue must disappear when its step or move becomes obsolete.
