@@ -30,11 +30,6 @@ export interface TutorialDeal extends OriginalDeal {
   script: TutorialScript;
 }
 
-// TESTING FLAG: when true, the tutorial runs at the start of EVERY round
-// (launch, reload, and "New deal"), ignoring tutorialSeen. Set back to
-// false to restore first-run-only behaviour.
-export const TUTORIAL_EVERY_ROUND = true;
-
 export const TUTORIAL_DEAL = tutorialDealJson as TutorialDeal;
 export const TUTORIAL_DEAL_ID = TUTORIAL_DEAL.deal_id;
 
@@ -62,7 +57,11 @@ const SPOTLIGHT: Partial<Record<TutStep, TutTarget[]>> = {
 
 export interface TutorialState {
   step: TutStep;
-  /** Start (or restart) the tutorial through the normal deal-loading path. */
+  /**
+   * Start (or restart) the tutorial through the normal deal-loading path.
+   * Runs automatically on a player's first launch only; afterwards it is
+   * reachable on demand from the board's tutorial button.
+   */
   start: () => void;
   continueIntro: () => void;
   /** Close the final explanation without waiting for the next play. */

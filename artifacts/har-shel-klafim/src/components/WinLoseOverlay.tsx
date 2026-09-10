@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useGame } from "@/store/game";
 import { useSettings } from "@/store/settings";
-import { useTutorial, TUTORIAL_EVERY_ROUND } from "@/store/tutorial";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function WinLoseOverlay() {
   const game = useGame();
-  const startTutorial = useTutorial((s) => s.start);
   const { lang, reducedMotion } = useSettings();
   const [visible, setVisible] = useState(false);
 
@@ -44,7 +42,7 @@ export function WinLoseOverlay() {
           </button>
           
           <button
-            onClick={() => (TUTORIAL_EVERY_ROUND ? startTutorial() : game.newDeal())}
+            onClick={() => game.newDeal()}
             className="flex-1 px-6 py-4 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors active:scale-95 shadow-md"
           >
             {t(lang, "btn.newDeal")}

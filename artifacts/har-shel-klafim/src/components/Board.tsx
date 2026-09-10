@@ -9,7 +9,8 @@ import { WinLoseOverlay } from "./WinLoseOverlay";
 import { PortraitOverlay } from "./overlay/PortraitOverlay";
 import { useIsRotated } from "@/hooks/useIsRotated";
 import { TutorialOverlay, TUT_BUBBLE_TEXT_ID } from "./TutorialOverlay";
-import { useTutorial, isGuidedStep, isAllowed, primaryTarget, TUTORIAL_EVERY_ROUND, type TutTarget } from "@/store/tutorial";
+import { TutorialRestartDialog } from "./TutorialRestartDialog";
+import { useTutorial, isGuidedStep, isAllowed, primaryTarget, type TutTarget } from "@/store/tutorial";
 import { getCardPos, getStockPos, getWastePos } from "@/lib/layout";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -31,6 +32,14 @@ export function GameBoard() {
   const startTutorial = useTutorial((s) => s.start);
   const guided = isGuidedStep(tutStep);
   const tutTarget = guided ? primaryTarget(tutStep) : null;
+
+  // Restarting the tutorial replaces the deal, so a round already in progress
+  // is only discarded after the player confirms.
+  const [confirmTutorial, setConfirmTutorial] = useState(false);
+  const requestTutorial = () => {
+    if (useGame.getState().history.length > 0) setConfirmTutorial(true);
+    else startTutorial();
+  };
 
   // Rejection feedback: the tapped element wiggles and the waste highlights.
   const [rejected, setRejected] = useState<TutTarget | "controls" | null>(null);
@@ -83,8 +92,9 @@ export function GameBoard() {
   
   useEffect(() => {
     if (!game.originalDeal) {
-      // First launch runs the tutorial; it loads its deal through loadDeal.
-      if (tutorialSeen && !TUTORIAL_EVERY_ROUND) game.newDeal();
+      // The tutorial runs by itself only on a player's first launch; after
+      // that it is opt-in through the board's tutorial button.
+      if (tutorialSeen) game.newDeal();
       else startTutorial();
     }
   }, []);
@@ -193,6 +203,23 @@ export function GameBoard() {
   }, []);
 
   const [hintIdx, setHintIdx] = useState<number | null>(null);
+  const hintTimer = useRef<number | null>(null);
+
+  const clearHint = () => {
+    if (hintTimer.current !== null) {
+      clearTimeout(hintTimer.current);
+      hintTimer.current = null;
+    }
+    setHintIdx(null);
+  };
+
+  // A hint glow must never outlive the deal it belongs to: loading another
+  // deal (a new game, or an on-demand tutorial restart) would otherwise leave
+  // an unrelated card glowing for the rest of the 1.5s timeout.
+  useEffect(() => clearHint, []);
+  useEffect(() => {
+    clearHint();
+  }, [game.originalDeal]);
 
   const handleHint = () => {
     if (game.isWon || game.isLost) return;
@@ -220,7 +247,11 @@ export function GameBoard() {
       }
       const chosen = bestIndices[Math.floor(Math.random() * bestIndices.length)];
       setHintIdx(chosen);
-      setTimeout(() => setHintIdx(null), 1500);
+      if (hintTimer.current !== null) clearTimeout(hintTimer.current);
+      hintTimer.current = window.setTimeout(() => {
+        hintTimer.current = null;
+        setHintIdx(null);
+      }, 1500);
       playSound("tap");
     } else {
       setAriaMsg(t(lang, "a11y.noMoves"));
@@ -314,9 +345,25 @@ export function GameBoard() {
         inert={isPortrait ? true : undefined}
         onClick={onFrameClick}
       >
-        {/* No HUD: score and streak are still tracked in the game store for
-            scoring logic, but nothing about them is shown to the player, and
-            the top strip of the frame is intentionally empty. */}
+        {/* Header strip. No HUD here: score and streak are still tracked in the
+            game store for scoring logic, but nothing about them is shown. The
+            only control is the on-demand tutorial. */}
+        <div className="absolute top-0 inset-x-0 h-[46px] flex items-center px-[54px] z-[200]">
+          <button
+            onClick={withDebounce(gatedControl(requestTutorial))}
+            className={cn(
+              "h-[38px] px-4 flex items-center rounded-full text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:scale-95",
+              controlsDim,
+              rejected === "controls" && !reducedMotion && "tut-wiggle",
+            )}
+            aria-label={t(lang, "btn.tutorial")}
+            aria-disabled={guided || undefined}
+            data-testid="btn-tutorial"
+            data-tut-interactive
+          >
+            {t(lang, "btn.tutorial")}
+          </button>
+        </div>
 
         {/* The tableau is a physical, never-mirrored coordinate system.
             The layer itself must be pointer-transparent: it spans the whole
@@ -462,6 +509,16 @@ export function GameBoard() {
         {ariaMsg}
       </div>
       
+      {confirmTutorial && (
+        <TutorialRestartDialog
+          onConfirm={() => {
+            setConfirmTutorial(false);
+            startTutorial();
+          }}
+          onCancel={() => setConfirmTutorial(false)}
+        />
+      )}
+
       {(game.isWon || game.isLost) && <WinLoseOverlay />}
       <PortraitOverlay visible={isPortrait} message={t(lang, "rotate.prompt")} />
     </div>
