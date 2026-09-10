@@ -24,6 +24,11 @@ The tutorial must load its deal through the same path as generated deals; the se
 **How to apply:** Keep gameplay and input gating outside the overlay; pass callbacks for explanation buttons from the board.
 
 ## Full-frame layers must be pointer-transparent
-The tableau container spans the whole 844×390 frame and sits after the header in DOM order; without `pointer-events: none` it swallowed real clicks on the ⚙ button (programmatic `.click()` still worked, which hid the bug in earlier tests). Cards manage their own pointer-events.
+The tableau container spans the whole 844×390 frame and sits above other controls in DOM order; without `pointer-events: none` it swallowed real clicks on a control that lived in the top strip (programmatic `.click()` still worked, which hid the bug in earlier tests). Cards manage their own pointer-events.
 **Why:** Synthetic clicks bypassed a real hit-testing failure.
 **How to apply:** any new full-frame layer (overlays, dim masks) should be pointer-transparent unless it owns a real control.
+
+## No score, streak, or settings surface for the player
+Scoring and streak state may exist in the store (undo history depends on it), but nothing about them may reach the screen — no HUD, no end-of-round score line, no settings entry point. The top strip of the frame is intentionally empty.
+**Why:** The user asked for a calm board with only the cards and the two play controls, and said the logic could stay only if it stays invisible.
+**How to apply:** Do not reintroduce a HUD or a gear/menu button without the user asking. Preferences (language, theme, sound, text size, reduced motion) still live in the settings store and apply from their defaults; if any of them ever needs to be user-changeable again, get the user's decision on the entry point first. Tableau rows start at y=46, so the empty strip must remain reserved space.

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export function WinLoseOverlay() {
   const game = useGame();
   const startTutorial = useTutorial((s) => s.start);
-  const { lang, textSize, reducedMotion } = useSettings();
+  const { lang, reducedMotion } = useSettings();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -35,10 +35,6 @@ export function WinLoseOverlay() {
           {game.isWon ? t(lang, "end.win") : t(lang, "end.lose")}
         </h2>
         
-        <p className="text-2xl font-medium">
-          {t(lang, "end.score", { n: new Intl.NumberFormat(lang === "he" ? "he-IL" : "en-US").format(game.score) })}
-        </p>
-
         <div className="flex flex-col sm:flex-row gap-4 w-full mt-4">
           <button
             onClick={() => game.replayDeal()}

@@ -4,8 +4,7 @@ import { useGame, isAdjacent, computeUncovered } from "@/store/game";
 import { useSettings } from "@/store/settings";
 import { t, type TranslationKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { RotateCcw, Lightbulb, Settings } from "lucide-react";
-import { SettingsModal } from "./SettingsModal";
+import { RotateCcw, Lightbulb } from "lucide-react";
 import { WinLoseOverlay } from "./WinLoseOverlay";
 import { PortraitOverlay } from "./overlay/PortraitOverlay";
 import { useIsRotated } from "@/hooks/useIsRotated";
@@ -24,11 +23,10 @@ const TUT_TEXT_KEYS = {
 } as const;
 
 export function GameBoard() {
-  const { lang, sound, textSize, tutorialSeen } = useSettings();
+  const { lang, sound, tutorialSeen } = useSettings();
   const reducedMotion = useReducedMotion();
   const game = useGame();
   const isPortrait = useIsRotated();
-  const [showSettings, setShowSettings] = useState(false);
   const tutStep = useTutorial((s) => s.step);
   const startTutorial = useTutorial((s) => s.start);
   const guided = isGuidedStep(tutStep);
@@ -316,35 +314,13 @@ export function GameBoard() {
         inert={isPortrait ? true : undefined}
         onClick={onFrameClick}
       >
-        {/* Header Strip */}
-        <div className="absolute top-0 inset-x-0 h-[46px] flex items-center justify-between px-[54px]">
-          <div className="flex items-baseline gap-2 font-bold text-xl">
-            <span className="text-muted-foreground uppercase tracking-widest text-sm">{t(lang, "hud.score")}</span>
-            <bdi>{new Intl.NumberFormat(lang === "he" ? "he-IL" : "en-US").format(game.score)}</bdi>
-          </div>
-          
-          {game.streak > 1 && (
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 text-primary font-bold animate-in zoom-in duration-300">
-              <span className="text-sm">{t(lang, "hud.streak", { n: "" }).replace("×", "").trim()}</span>
-              <bdi className="text-lg">×{game.streak}</bdi>
-            </div>
-          )}
-          
-          <button
-            onClick={withDebounce(gatedControl(() => setShowSettings(true)))}
-            className={cn("w-[44px] h-[44px] flex items-center justify-center rounded-full hover:bg-muted text-muted-foreground transition-colors", controlsDim, rejected === "controls" && !reducedMotion && "tut-wiggle")}
-            aria-label={t(lang, "btn.menu")}
-            aria-disabled={guided || undefined}
-            data-testid="btn-settings"
-            data-tut-interactive
-          >
-            <Settings className="w-6 h-6" />
-          </button>
-        </div>
-        
+        {/* No HUD: score and streak are still tracked in the game store for
+            scoring logic, but nothing about them is shown to the player, and
+            the top strip of the frame is intentionally empty. */}
+
         {/* The tableau is a physical, never-mirrored coordinate system.
             The layer itself must be pointer-transparent: it spans the whole
-            frame and would otherwise swallow taps meant for the header. */}
+            frame and would otherwise swallow taps meant for other controls. */}
         <div className="absolute inset-0 pointer-events-none" dir="ltr">
           {game.tableau.map((code, index) => {
             const status = displayStatuses[index];
@@ -486,7 +462,6 @@ export function GameBoard() {
         {ariaMsg}
       </div>
       
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {(game.isWon || game.isLost) && <WinLoseOverlay />}
       <PortraitOverlay visible={isPortrait} message={t(lang, "rotate.prompt")} />
     </div>
