@@ -27,8 +27,13 @@ if (!basePath) {
   );
 }
 
+// index.html and main.tsx build asset URLs by concatenating BASE_URL with a
+// file name (manifest, icons, service worker), so the base must end in exactly
+// one slash. Without this, a base like "/game" yields "/gamemanifest.webmanifest".
+const normalizedBasePath = basePath.endsWith('/') ? basePath : `${basePath}/`;
+
 export default defineConfig({
-  base: basePath,
+  base: normalizedBasePath,
   plugins: [
     react(),
     tailwindcss(),
