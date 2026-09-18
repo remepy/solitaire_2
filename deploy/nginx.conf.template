@@ -1,16 +1,21 @@
+# Template — the Docker build substitutes __BASE__ with the normalized
+# BASE_PATH (always leading and trailing slash, e.g. "/" or "/solitaire/") and
+# __ROOT_REDIRECT__ with a redirect to that prefix when it is not the root.
+
 server {
     listen 8080;
     server_name _;
 
     root /usr/share/nginx/html;
     index index.html;
+    charset utf-8;
 
     gzip on;
     gzip_types text/css application/javascript application/json image/svg+xml application/manifest+json;
     gzip_min_length 1024;
 
     # Hashed build assets are immutable.
-    location /assets/ {
+    location __BASE__assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";
         try_files $uri =404;
@@ -18,20 +23,21 @@ server {
 
     # The service worker and the manifest must never be served stale, or an
     # installed PWA keeps booting the previous build.
-    location = /sw.js {
+    location = __BASE__sw.js {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         try_files $uri =404;
     }
 
-    location = /manifest.webmanifest {
+    location = __BASE__manifest.webmanifest {
         add_header Cache-Control "no-cache";
-        types { } default_type application/manifest+json;
+        default_type application/manifest+json;
         try_files $uri =404;
     }
 
-    # Single-page app: every unknown path resolves to index.html.
-    location / {
+__ROOT_REDIRECT__
+    # Single-page app: every unknown path under the prefix resolves to index.html.
+    location __BASE__ {
         add_header Cache-Control "no-cache";
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ __BASE__index.html;
     }
 }

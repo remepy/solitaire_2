@@ -21,6 +21,8 @@ pnpm --filter @workspace/har-shel-klafim run build
 Output: `artifacts/har-shel-klafim/dist/public` — `index.html`, hashed assets under
 `assets/`, plus the PWA files (`sw.js`, `manifest.webmanifest`, icons).
 
+Requires Node.js 24 and pnpm 10.26.1 (via corepack).
+
 ### Sub-path hosting
 
 By default the app is built for the domain root (`/`). To host it under a path,
@@ -30,55 +32,96 @@ set `BASE_PATH` at build time:
 BASE_PATH=/solitaire/ pnpm --filter @workspace/har-shel-klafim run build
 ```
 
-`BASE_PATH` must end with a slash or the build normalizes it for you. It is baked
-into the bundle at build time and cannot be changed afterwards.
+`BASE_PATH` must be an absolute same-origin path — no scheme, host, query or
+fragment; the build rejects anything else. It is baked into the bundle and into
+the service-worker scope at build time and cannot be changed afterwards. **When
+you build with a prefix, the files must also be served from that prefix** (an S3
+key prefix, or the Docker build arg below, which handles it for you).
 
-Requires Node.js 24 (see `.nvmrc` if present) and pnpm via corepack.
+---
+
+## Cache policy (applies to every option)
+
+This matters more than usual because the app registers a service worker. Get it
+wrong and an installed PWA keeps booting an old build forever.
+
+| Files | `Cache-Control` |
+| --- | --- |
+| `assets/*` (content-hashed) | `public, max-age=31536000, immutable` |
+| `index.html`, `sw.js`, `manifest.webmanifest`, icons | `no-cache` |
+
+Note that a CloudFront cache policy with a non-zero **minimum TTL overrides the
+origin's `no-cache` header**. The stable-name files need a behavior whose minimum
+TTL is 0.
 
 ---
 
 ## Option A — S3 + CloudFront (recommended)
 
-Static hosting, no servers, HTTPS and global caching from CloudFront.
-
-1. Build, then sync the output:
+1. Build, then upload in two passes so each group gets its own cache header.
+   The `--delete` belongs to the second pass, which covers the whole prefix:
 
    ```bash
-   aws s3 sync artifacts/har-shel-klafim/dist/public s3://YOUR_BUCKET --delete
+   DIST=artifacts/har-shel-klafim/dist/public
+   BUCKET=s3://YOUR_BUCKET          # add /solitaire for a sub-path build
+
+   # 1. hashed assets — immutable
+   aws s3 sync "$DIST/assets" "$BUCKET/assets" \
+     --cache-control "public, max-age=31536000, immutable"
+
+   # 2. everything else — revalidate every time
+   aws s3 sync "$DIST" "$BUCKET" --delete \
+     --exclude "assets/*" \
+     --cache-control "no-cache"
+   ```
+
+   `aws s3 sync` infers `Content-Type` from the extension, except for
+   `.webmanifest`, which it uploads as `binary/octet-stream`. Fix it explicitly:
+
+   ```bash
+   aws s3 cp "$DIST/manifest.webmanifest" "$BUCKET/manifest.webmanifest" \
+     --content-type "application/manifest+json" --cache-control "no-cache"
    ```
 
 2. Keep the bucket private and put CloudFront in front of it with an **Origin
-   Access Control (OAC)**. Set the CloudFront *Default root object* to
-   `index.html`.
+   Access Control (OAC)**. Set the *Default root object* to `index.html`.
 
-3. **SPA fallback** — add a CloudFront custom error response so deep links work:
+3. **Cache behaviors** — two are needed:
 
-   | HTTP error code | Response page path | HTTP response code |
-   | --------------- | ------------------ | ------------------ |
-   | 403             | `/index.html`      | 200                |
-   | 404             | `/index.html`      | 200                |
+   - Path pattern `assets/*` (or `solitaire/assets/*`): managed policy
+     `CachingOptimized`.
+   - Default (`*`): a policy with **Min TTL 0**, Default TTL 0, Max TTL 31536000,
+     so the origin's `no-cache` on `index.html` / `sw.js` / the manifest is
+     respected. The managed `CachingDisabled` policy also works.
 
-4. **Caching** — two different policies matter here:
+4. **SPA fallback** — add custom error responses so deep links resolve:
 
-   - `assets/*` are content-hashed: `Cache-Control: public, max-age=31536000, immutable`
-   - `index.html`, `sw.js`, `manifest.webmanifest`: `Cache-Control: no-cache`
+   | HTTP error code | Response page path | HTTP response code | Error caching min TTL |
+   | --------------- | ------------------ | ------------------ | --------------------- |
+   | 403             | `/index.html`      | 200                | 0                     |
+   | 404             | `/index.html`      | 200                | 0                     |
 
-   Getting this wrong is the usual cause of an installed PWA stubbornly booting
-   an old build. Example for the no-cache group:
+   Setting the error caching TTL to 0 matters: otherwise CloudFront caches the
+   fallback response per URL for 10 minutes by default, and a path that later
+   becomes a real object keeps serving the SPA shell.
+
+   For a sub-path deployment, point the response page path at
+   `/solitaire/index.html`.
+
+5. Invalidate the stable-name files on every deploy:
 
    ```bash
-   aws s3 cp artifacts/har-shel-klafim/dist/public/index.html s3://YOUR_BUCKET/index.html \
-     --cache-control "no-cache" --content-type "text/html"
-   aws s3 cp artifacts/har-shel-klafim/dist/public/sw.js s3://YOUR_BUCKET/sw.js \
-     --cache-control "no-cache" --content-type "application/javascript"
+   aws cloudfront create-invalidation --distribution-id ID \
+     --paths "/index.html" "/sw.js" "/manifest.webmanifest"
    ```
 
-5. Invalidate on deploy: `aws cloudfront create-invalidation --distribution-id ID --paths "/index.html" "/sw.js" "/manifest.webmanifest"`
+   Hashed assets never need invalidating — their names change.
 
 ## Option B — Docker (App Runner, ECS/Fargate, or EC2)
 
 The root `Dockerfile` builds the app and serves it with nginx on **port 8080**,
-including the SPA fallback and the cache rules above (`deploy/nginx.conf`).
+with the SPA fallback and the cache rules above already applied
+(`deploy/nginx.conf.template`).
 
 ```bash
 docker build -t har-shel-klafim .
@@ -86,10 +129,12 @@ docker run --rm -p 8080:8080 har-shel-klafim
 # http://localhost:8080
 ```
 
-Sub-path build:
+Sub-path build — the argument drives the bundle, the file placement inside the
+image and the nginx config together, and `/` then redirects to the prefix:
 
 ```bash
 docker build --build-arg BASE_PATH=/solitaire/ -t har-shel-klafim .
+# http://localhost:8080/solitaire/
 ```
 
 Push to ECR and deploy:
@@ -101,10 +146,11 @@ docker tag har-shel-klafim ACCOUNT.dkr.ecr.REGION.amazonaws.com/har-shel-klafim:
 docker push ACCOUNT.dkr.ecr.REGION.amazonaws.com/har-shel-klafim:latest
 ```
 
-- **App Runner**: point a service at the ECR image, port `8080`. Health check
+- **App Runner**: point a service at the ECR image, port `8080`, health check
   path `/`. Simplest container option — no load balancer to manage.
-- **ECS/Fargate**: task container port `8080` behind an ALB target group with
-  health check path `/`.
+- **ECS/Fargate**: container port `8080` behind an ALB target group, health check
+  path `/`. For a sub-path image `/` returns 302, so either set the health check
+  path to the prefix (`/solitaire/`) or accept 302 as a success code.
 
 ## Option C — AWS Amplify Hosting
 
@@ -140,15 +186,15 @@ target `/index.html`, type `200 (Rewrite)`.
 
 - **HTTPS is required** for the service worker and for "Add to home screen" to
   work. CloudFront, App Runner, and Amplify all terminate TLS for you; a bare
-  EC2 instance on plain HTTP will silently lose the PWA behaviour.
-- **Hebrew/RTL** is handled entirely in the bundle; no server configuration is
-  needed, but make sure responses are served as UTF-8 (nginx config here does).
+  EC2 instance on plain HTTP silently loses the PWA behaviour.
 - **Do not switch the Docker build stage to Alpine.** `pnpm-workspace.yaml`
   prunes the musl native binaries for rollup, esbuild and tailwind's oxide, so a
   musl-based image fails the build with a missing-native-module error. The build
   stage uses `node:24-slim` (glibc) for that reason.
+- **Hebrew/RTL** is handled entirely in the bundle; no server configuration is
+  needed beyond serving UTF-8 (the nginx config sets it).
 - **Replit-specific files** (`.replit`, `.replit-artifact/`, `.local/`) are
   harmless in the repo and ignored by every option above.
-- The Vite config reads `PORT` and `BASE_PATH` when they are present and falls
-  back to `5173` and `/` when they are not, so the same config works both inside
-  Replit and in a plain CI/Docker build.
+- The Vite config reads `PORT` and `BASE_PATH` when present and falls back to
+  `5173` and `/` when they are not, so the same config works inside Replit and in
+  a plain CI or Docker build. Inside Replit both remain mandatory.

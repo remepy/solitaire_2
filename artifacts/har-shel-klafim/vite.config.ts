@@ -20,15 +20,29 @@ if (isReplit && !rawPort) {
 
 const port = rawPort ? Number(rawPort) : 5173;
 
-if (Number.isNaN(port) || port <= 0) {
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
-
-const basePath = process.env.BASE_PATH ?? '/';
 
 if (isReplit && !process.env.BASE_PATH) {
   throw new Error(
     'BASE_PATH environment variable is required but was not provided.',
+  );
+}
+
+const basePath = process.env.BASE_PATH ?? '/';
+
+// The base is baked into asset URLs and into the service worker scope, which
+// browsers only honour for a same-origin path. Anything that is not a plain
+// absolute pathname would build happily and then fail in the browser.
+if (
+  !basePath.startsWith('/') ||
+  basePath.startsWith('//') ||
+  /[?#]/.test(basePath)
+) {
+  throw new Error(
+    `Invalid BASE_PATH value: "${basePath}". It must be an absolute same-origin ` +
+      'path such as "/" or "/solitaire/", with no scheme, host, query or fragment.',
   );
 }
 
