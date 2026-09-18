@@ -1,0 +1,30 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "O4UA2B_89pPlhtVFARbAa"
+uri = "file://exports/solitaire-source.zip"
+type = "unspecified"
+title = "Solitaire — source ZIP"
+description = "Full monorepo source at commit b810d36 (278 files, no node_modules, no git history). Use for GitHub's web upload."
+logical_id = "c9ec27bc-377f-496e-ba66-ec93ef6c4c86"
+content_hash = "sha256:9f6a4e62fc602b7bc64c049a32d106aeacf50c8524735c0db3289a8c9b991adf"
+size = 1325921
+mtime_ms = 1789728078563
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:b748b75a-c380-4ebe-bcdc-c8560499a915/c9ec27bc-377f-496e-ba66-ec93ef6c4c86/32716ed2-fd38-41a5-99be-67a6d04b87ce"
+storage_version_token = "1789728085981763"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "SSOfxa7IqVAC8Hwv8TWkS"
+uri = "file://exports/solitaire-history.bundle"
+type = "unspecified"
+title = "Solitaire — git bundle (with history)"
+description = "Complete git repository including all commit history, as a single-file git bundle. Use with the git CLI to push with history intact."
+logical_id = "b0f983df-9a94-4f5f-8001-1baac2c1ec0c"
+content_hash = "sha256:383a2178ee719e6d1bc9754b88e9f5fe1fcb39cd76ebed736b16297927d9341e"
+size = 1265106
+mtime_ms = 1789728078695
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:b748b75a-c380-4ebe-bcdc-c8560499a915/b0f983df-9a94-4f5f-8001-1baac2c1ec0c/e252fb89-5f97-4bb6-ba5c-04ad6f34cfdc"
+storage_version_token = "1789728087325473"
+content_type = "application/octet-stream"
