@@ -26,7 +26,6 @@ WORKDIR /app
 # across source-only changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY artifacts/har-shel-klafim/package.json artifacts/har-shel-klafim/
-COPY lib lib
 COPY scripts/package.json scripts/
 
 RUN pnpm install --frozen-lockfile --filter @workspace/har-shel-klafim...
