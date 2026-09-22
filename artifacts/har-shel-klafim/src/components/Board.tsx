@@ -11,6 +11,7 @@ import { useIsRotated } from "@/hooks/useIsRotated";
 import { TutorialOverlay, TUT_BUBBLE_TEXT_ID } from "./TutorialOverlay";
 import { TutorialRestartDialog } from "./TutorialRestartDialog";
 import { useTutorial, isGuidedStep, isAllowed, primaryTarget, type TutTarget } from "@/store/tutorial";
+import { findBestMove, RANKS, N as N_TABLEAU } from "@/lib/solver";
 import { FRAME_W, FRAME_H, PLAY_BOUNDS, getBoardScale, getCardPos, getStockPos, getStockTapRect, getWastePos } from "@/lib/layout";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -235,10 +236,39 @@ export function GameBoard() {
       }
       return;
     }
+    // Perfect play: ask the exact solver for a move that lies on a winning
+    // line, so following hints repeatedly clears the board. The greedy
+    // heuristic this replaced wins only about half its deals, which made
+    // "keep pressing hint" a promise the game could not keep.
     const topWaste = game.waste[game.waste.length - 1];
+    const rankOf = (card: string) => (card === "WILD" ? -1 : RANKS.indexOf(card.slice(0, -1)));
+    const displayed = computeUncovered(game.tableauStatus);
+    let playedMask = 0;
+    for (let i = 0; i < N_TABLEAU; i++) {
+      if (displayed[i] === "played") playedMask |= 1 << i;
+    }
+    const best = findBestMove(
+      game.tableau.map(rankOf),
+      [...game.stock].reverse().map(rankOf), // solver wants draw order
+      rankOf(topWaste),
+      playedMask,
+    );
+
+    if (best?.type === "play") {
+      showHint(`card:${best.index}`, t(lang, "a11y.hint", { card: game.tableau[best.index] }));
+      return;
+    }
+    if (best?.type === "draw") {
+      showHint("stock", t(lang, "a11y.noMoves"));
+      return;
+    }
+
+    // No winning line remains — the deal was lost by an earlier move. Losing is
+    // an expected outcome, so fall back to the best legal move rather than
+    // telling the player the position is dead.
     const legalIndices = [];
-    for (let i=0; i<28; i++) {
-      if (game.tableauStatus[i] === "uncovered" && isAdjacent(topWaste, game.tableau[i])) {
+    for (let i = 0; i < N_TABLEAU; i++) {
+      if (displayed[i] === "uncovered" && isAdjacent(topWaste, game.tableau[i])) {
         legalIndices.push(i);
       }
     }
@@ -246,7 +276,7 @@ export function GameBoard() {
       let bestIndices: number[] = [];
       let bestScore = -1;
       for (const idx of legalIndices) {
-        const tempStatus = [...game.tableauStatus];
+        const tempStatus = [...displayed];
         tempStatus[idx] = "played";
         const nextStatus = computeUncovered(tempStatus);
         const uncoveredCount = nextStatus.filter(s => s === "uncovered").length;
@@ -316,7 +346,7 @@ export function GameBoard() {
   // HANDOFF shows the legal cards glowing until the player's next move.
   const handoffGlow = new Set<number>();
   if (tutStep === "handoff") {
-    for (let i = 0; i < 28; i++) {
+    for (let i = 0; i < N_TABLEAU; i++) {
       if (displayStatuses[i] === "uncovered" && isAdjacent(wasteTop, game.tableau[i])) handoffGlow.add(i);
     }
   }

@@ -220,4 +220,98 @@ function generateDeal(wildMode = "auto", rng = Math.random, maxAttempts = 2000) 
   throw new Error("maxAttempts exceeded");
 }
 
-export { isSolvable, generateSolvableDeal, generateDeal, playGreedy, BOARD, STOCK_SIZE, WILD_CHANCE, coveredBy, N };
+// ---- Deterministic PRNG (mulberry32) ----
+// Used by the deal-catalogue generator so a given seed always yields the same
+// 180 deals. Not used at runtime: the shipped catalogue is a data file.
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---- Perfect-play move search ----
+// Unlike playGreedy's heuristic, this returns a move that lies on a winning
+// line, so following it repeatedly clears the board. `playedMask` carries the
+// cards already removed, so it works from any mid-game position rather than
+// only from the deal.
+//
+// Returns { type: "play", index } | { type: "draw" } | null.
+// null means no winning line remains — either the board is already cleared, or
+// the player has made a move that lost the deal. Callers fall back to a
+// heuristic hint rather than telling the player the position is dead.
+function findBestMove(tableauRanks, stockRanks, wasteRank, playedMask = 0) {
+  const memo = new Map();
+  const stockLen = stockRanks.length;
+
+  function uncovered(mask, i) {
+    if (mask & (1 << i)) return false;
+    for (const b of coveredBy[i]) if (!(mask & (1 << b))) return false;
+    return true;
+  }
+
+  function dfs(mask, stockIdx, waste) {
+    if (mask === FULL) return true;
+    const key = mask * 32 * 15 + stockIdx * 15 + (waste === WILD ? 14 : waste);
+    const hit = memo.get(key);
+    if (hit !== undefined) return hit;
+
+    const moves = [];
+    for (let i = 0; i < N; i++) {
+      if (uncovered(mask, i) && (waste === WILD || adj(tableauRanks[i], waste))) {
+        let s = 0;
+        for (const j of blocks[i]) {
+          if (!(mask & (1 << j))) {
+            let free = true;
+            for (const b of coveredBy[j]) if (b !== i && !(mask & (1 << b))) { free = false; break; }
+            if (free) s++;
+          }
+        }
+        moves.push([s, i]);
+      }
+    }
+    moves.sort((a, b) => b[0] - a[0]);
+
+    for (const [, i] of moves) {
+      if (dfs(mask | (1 << i), stockIdx, tableauRanks[i])) { memo.set(key, true); return true; }
+    }
+    if (stockIdx < stockLen) {
+      if (dfs(mask, stockIdx + 1, stockRanks[stockIdx])) { memo.set(key, true); return true; }
+    }
+    memo.set(key, false);
+    return false;
+  }
+
+  if (playedMask === FULL) return null;
+  if (!dfs(playedMask, 0, wasteRank)) return null;
+
+  // A winning line exists. Prefer the play that keeps one: among those, take
+  // the one unblocking the most cards, so the hint still reads as sensible.
+  const candidates = [];
+  for (let i = 0; i < N; i++) {
+    if (!uncovered(playedMask, i)) continue;
+    if (!(wasteRank === WILD || adj(tableauRanks[i], wasteRank))) continue;
+    if (!dfs(playedMask | (1 << i), 0, tableauRanks[i])) continue;
+    let s = 0;
+    for (const j of blocks[i]) {
+      if (!(playedMask & (1 << j))) {
+        let free = true;
+        for (const b of coveredBy[j]) if (b !== i && !(playedMask & (1 << b))) { free = false; break; }
+        if (free) s++;
+      }
+    }
+    candidates.push([s, i]);
+  }
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+    return { type: "play", index: candidates[0][1] };
+  }
+  if (stockLen > 0 && dfs(playedMask, 1, stockRanks[0])) return { type: "draw" };
+  return null;
+}
+
+export { isSolvable, generateSolvableDeal, generateDeal, playGreedy, findBestMove, mulberry32, BOARD, STOCK_SIZE, WILD_CHANCE, coveredBy, N, RANKS };

@@ -1,26 +1,6 @@
 import { create } from "zustand";
-import { generateDeal, coveredBy, N } from "../lib/solver";
-
-function fallbackDeal() {
-  const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
-  const SUITS = ["S","H","D","C"];
-  const deck: string[] = [];
-  for (let r of RANKS) for (let s of SUITS) deck.push(r + s);
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
-  if (Math.random() < 0.4) {
-    const pos = Math.floor(Math.random() * 23);
-    deck[28 + 1 + pos] = "WILD";
-  }
-  return {
-    deal_id: "fallback-" + Date.now(),
-    tableau: deck.slice(0, 28),
-    waste: deck[28],
-    stock: deck.slice(29, 29 + 23).reverse()
-  } as OriginalDeal;
-}
+import { coveredBy, N } from "../lib/solver";
+import { dealForLevel, DEAL_COUNT } from "../lib/deals";
 
 export type CardCode = string; // e.g. "6C", "10H", "WILD"
 
@@ -51,6 +31,8 @@ export type GameMove =
 
 export interface GameState {
   originalDeal: OriginalDeal | null;
+  /** Catalogue level currently loaded; null for the scripted tutorial deal. */
+  level: number | null;
   
   tableau: CardCode[];
   tableauStatus: TableauStatus[];
@@ -65,8 +47,10 @@ export interface GameState {
   history: GameHistoryEntry[];
   lastMove: GameMove | null;
 
-  /** Load any deal (generated or scripted) through the one shared path. */
-  loadDeal: (deal: OriginalDeal) => void;
+  /** Load any deal (catalogue or scripted) through the one shared path. */
+  loadDeal: (deal: OriginalDeal, level?: number | null) => void;
+  /** Load a specific catalogue level. Wraps after DEAL_COUNT. */
+  loadLevel: (level: number) => void;
   newDeal: () => void;
   replayDeal: () => void;
   playCard: (idx: number) => void;
@@ -124,6 +108,7 @@ export function checkWinLose(tableauStatus: TableauStatus[], stock: string[], wa
 
 export const useGame = create<GameState>((set, get) => ({
   originalDeal: null,
+  level: null,
   tableau: [],
   tableauStatus: [],
   stock: [],
@@ -137,13 +122,14 @@ export const useGame = create<GameState>((set, get) => ({
   lastAnnouncement: null,
   announce: (msg) => set({ lastAnnouncement: msg }),
 
-  loadDeal: (deal: OriginalDeal) => {
+  loadDeal: (deal: OriginalDeal, level: number | null = null) => {
     let status = Array(N).fill("face-down") as TableauStatus[];
     // bottom row uncovered
     for(let i = 18; i < 28; i++) status[i] = "uncovered";
     
     set({
       originalDeal: deal,
+      level,
       tableau: deal.tableau,
       tableauStatus: status,
       stock: deal.stock,
@@ -158,23 +144,22 @@ export const useGame = create<GameState>((set, get) => ({
     });
   },
 
+  loadLevel: (level: number) => {
+    get().loadDeal(dealForLevel(level), level);
+  },
+
   newDeal: () => {
-    // Calibrated deal: always solvable with perfect play, but winnable by
-    // heuristic play only ~1/3 of the time (see solver.js).
-    let res;
-    try {
-      res = generateDeal("auto");
-    } catch(e) {
-      // Fallback
-      res = { deal: fallbackDeal() };
-    }
-    get().loadDeal(res.deal as OriginalDeal);
+    // Standalone play walks the catalogue. Under the app, the host decides the
+    // level and calls loadLevel instead.
+    const current = get().level;
+    const next = current === null ? 0 : (current + 1) % DEAL_COUNT;
+    get().loadLevel(next);
   },
 
   replayDeal: () => {
     const orig = get().originalDeal;
     if (!orig) return;
-    get().loadDeal(orig);
+    get().loadDeal(orig, get().level);
   },
 
   playCard: (idx: number) => {
