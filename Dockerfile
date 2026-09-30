@@ -1,13 +1,13 @@
-# Build and serve "הר של קלפים" (artifacts/har-shel-klafim) as a static site.
+# Build and serve "הר של קלפים" (artifacts/solitaire) as a static site.
 #
-#   docker build -t har-shel-klafim .
-#   docker run -p 8080:8080 har-shel-klafim
+#   docker build -t solitaire .
+#   docker run -p 8080:8080 solitaire
 #
 # The app is a client-only Vite SPA, so the runtime image is just nginx with a
 # SPA fallback. Nothing in the container needs a database or an API server.
 #
 # To host under a sub-path, pass the same value to both stages:
-#   docker build --build-arg BASE_PATH=/solitaire/ -t har-shel-klafim .
+#   docker build --build-arg BASE_PATH=/solitaire/ -t solitaire .
 
 # ---- build stage -------------------------------------------------------------
 # Debian, not Alpine: pnpm-workspace.yaml prunes the musl native binaries for
@@ -25,15 +25,15 @@ WORKDIR /app
 # Copy the workspace manifests first so dependency installation stays cached
 # across source-only changes.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY artifacts/har-shel-klafim/package.json artifacts/har-shel-klafim/
+COPY artifacts/solitaire/package.json artifacts/solitaire/
 COPY scripts/package.json scripts/
 
-RUN pnpm install --frozen-lockfile --filter @workspace/har-shel-klafim...
+RUN pnpm install --frozen-lockfile --filter @workspace/solitaire...
 
 COPY tsconfig.base.json tsconfig.json ./
-COPY artifacts/har-shel-klafim artifacts/har-shel-klafim
+COPY artifacts/solitaire artifacts/solitaire
 
-RUN pnpm --filter @workspace/har-shel-klafim run build
+RUN pnpm --filter @workspace/solitaire run build
 
 # ---- runtime stage -----------------------------------------------------------
 FROM nginx:1.27-alpine AS runtime
@@ -42,7 +42,7 @@ ARG BASE_PATH=/
 ENV APP_BASE=${BASE_PATH}
 
 COPY deploy/nginx.conf.template /tmp/nginx.conf.template
-COPY --from=build /app/artifacts/har-shel-klafim/dist/public /tmp/site
+COPY --from=build /app/artifacts/solitaire/dist/public /tmp/site
 
 # Place the build under the same prefix the bundle was compiled for, and render
 # the nginx config for that prefix. Without this, a sub-path build would emit

@@ -1,6 +1,6 @@
 # Deploying הר של קלפים on AWS
 
-The game (`artifacts/har-shel-klafim`) is a **client-only Vite + React SPA**. It has
+The game (`artifacts/solitaire`) is a **client-only Vite + React SPA**. It has
 no backend requirement: no database, no API calls, no server-side state. Game
 progress lives in the browser. That means the cheapest and most reliable hosting
 is plain static file hosting; the Docker image is only there if you prefer to run
@@ -15,10 +15,10 @@ needed to run the game.
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
-pnpm --filter @workspace/har-shel-klafim run build
+pnpm --filter @workspace/solitaire run build
 ```
 
-Output: `artifacts/har-shel-klafim/dist/public` — `index.html`, hashed assets under
+Output: `artifacts/solitaire/dist/public` — `index.html`, hashed assets under
 `assets/`, plus the PWA files (`sw.js`, `manifest.webmanifest`, icons).
 
 Requires Node.js 24 and pnpm 10.26.1 (via corepack).
@@ -29,7 +29,7 @@ By default the app is built for the domain root (`/`). To host it under a path,
 set `BASE_PATH` at build time:
 
 ```bash
-BASE_PATH=/solitaire/ pnpm --filter @workspace/har-shel-klafim run build
+BASE_PATH=/solitaire/ pnpm --filter @workspace/solitaire run build
 ```
 
 `BASE_PATH` must be an absolute same-origin path — no scheme, host, query or
@@ -62,7 +62,7 @@ TTL is 0.
    The `--delete` belongs to the second pass, which covers the whole prefix:
 
    ```bash
-   DIST=artifacts/har-shel-klafim/dist/public
+   DIST=artifacts/solitaire/dist/public
    BUCKET=s3://YOUR_BUCKET          # add /solitaire for a sub-path build
 
    # 1. hashed assets — immutable
@@ -124,8 +124,8 @@ with the SPA fallback and the cache rules above already applied
 (`deploy/nginx.conf.template`).
 
 ```bash
-docker build -t har-shel-klafim .
-docker run --rm -p 8080:8080 har-shel-klafim
+docker build -t solitaire .
+docker run --rm -p 8080:8080 solitaire
 # http://localhost:8080
 ```
 
@@ -133,7 +133,7 @@ Sub-path build — the argument drives the bundle, the file placement inside the
 image and the nginx config together, and `/` then redirects to the prefix:
 
 ```bash
-docker build --build-arg BASE_PATH=/solitaire/ -t har-shel-klafim .
+docker build --build-arg BASE_PATH=/solitaire/ -t solitaire .
 # http://localhost:8080/solitaire/
 ```
 
@@ -142,8 +142,8 @@ Push to ECR and deploy:
 ```bash
 aws ecr get-login-password --region REGION \
   | docker login --username AWS --password-stdin ACCOUNT.dkr.ecr.REGION.amazonaws.com
-docker tag har-shel-klafim ACCOUNT.dkr.ecr.REGION.amazonaws.com/har-shel-klafim:latest
-docker push ACCOUNT.dkr.ecr.REGION.amazonaws.com/har-shel-klafim:latest
+docker tag solitaire ACCOUNT.dkr.ecr.REGION.amazonaws.com/solitaire:latest
+docker push ACCOUNT.dkr.ecr.REGION.amazonaws.com/solitaire:latest
 ```
 
 - **App Runner**: point a service at the ECR image, port `8080`, health check
@@ -166,9 +166,9 @@ frontend:
         - pnpm install --frozen-lockfile
     build:
       commands:
-        - pnpm --filter @workspace/har-shel-klafim run build
+        - pnpm --filter @workspace/solitaire run build
   artifacts:
-    baseDirectory: artifacts/har-shel-klafim/dist/public
+    baseDirectory: artifacts/solitaire/dist/public
     files:
       - '**/*'
   cache:

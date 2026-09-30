@@ -3,7 +3,7 @@ previewPath = "/"
 title = "הר של קלפים"
 description = "משחק סוליטר TriPeaks נגיש בעברית, המותאם למשחק בדפדפן נייד במצב אופקי עם יעדי לחיצה גדולים, קלט סלחני לרעד, ביטול ורמזים ללא הגבלה."
 version = "1.0.0"
-id = "artifacts/har-shel-klafim"
+id = "artifacts/solitaire"
 router = "path"
 
 [[services]]
@@ -12,12 +12,12 @@ paths = [ "/" ]
 localPort = 25809
 
 [services.development]
-run = "pnpm --filter @workspace/har-shel-klafim run dev"
+run = "pnpm --filter @workspace/solitaire run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/har-shel-klafim", "run", "build" ]
+build = [ "pnpm", "--filter", "@workspace/solitaire", "run", "build" ]
 serve = "static"
-publicDir = "artifacts/har-shel-klafim/dist/public"
+publicDir = "artifacts/solitaire/dist/public"
 
 [[services.production.rewrites]]
 from = "/*"
