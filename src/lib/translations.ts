@@ -63,6 +63,7 @@ export const REQUIRED_KEYS = [
   "tut.intro.rule",
   "tut.next",
   "tut.reference",
+  "tut.skip",
   "tut.s1.action",
   "tut.s1.rule",
   "tut.s2.action",

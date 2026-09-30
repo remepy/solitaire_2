@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { coveredBy } from "../src/lib/solver.js";
-import { getBoardScale, getCardHitRect, getCardRect, getStockTapRect, PLAY_BOUNDS, type Rect } from "../src/lib/layout.ts";
+import {
+  getBoardScale, getBubbleRect, getCardHitRect, getCardRect, getStockTapRect, getWasteRect,
+  PLAY_BOUNDS, type Rect,
+} from "../src/lib/layout.ts";
 
 const right = (r: Rect) => r.left + r.width;
 const bottom = (r: Rect) => r.top + r.height;
@@ -21,6 +24,20 @@ for (let a = 0; a < 28; a++) {
     if (descendants(a).has(b) || descendants(b).has(a)) continue;
     assert.ok(!overlaps(getCardRect(a), getCardRect(b)), `cards ${a}/${b} overlap`);
     assert.ok(!overlaps(hit, getCardHitRect(b)), `hit zones ${a}/${b} overlap`);
+  }
+}
+
+// The coach bubble grows with its copy and the skip link. Even at its tallest
+// it must stay inside the play bounds, clear of the lowest row of cards, and
+// clear of both piles — in both text directions.
+for (const rtl of [true, false]) {
+  const bubble = getBubbleRect(rtl);
+  assert.ok(bubble.left >= PLAY_BOUNDS.left && right(bubble) <= right(PLAY_BOUNDS), "bubble leaves the play bounds");
+  assert.ok(bottom(bubble) <= bottom(PLAY_BOUNDS), "bubble bottom leaves the play bounds");
+  assert.ok(!overlaps(bubble, getStockTapRect(rtl)), "bubble overlaps the stock");
+  assert.ok(!overlaps(bubble, getWasteRect(rtl)), "bubble overlaps the waste");
+  for (let i = 0; i < 28; i++) {
+    assert.ok(!overlaps(bubble, getCardHitRect(i)), `bubble overlaps card ${i}`);
   }
 }
 

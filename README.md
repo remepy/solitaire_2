@@ -27,16 +27,20 @@ affects progression.
   remains. A round-end screen follows every round except the last; after the
   last, `game_finished` is posted and the app draws its own summary (BR-01).
 - **Tutorial.** Five guided steps on the scripted deal, shown when
-  `session_start` says `tutorialSeen: false`, and reachable any time from
-  "show tutorial". The app's flag overrides anything stored on the device.
+  `session_start` says `tutorialSeen: false`, and reachable any time from the
+  help control in the header. The app's flag overrides anything stored on the
+  device. Every card except the last carries a skip link, which returns to the
+  round and marks the tutorial seen; the last card already ends it with "Got
+  it".
 - **Hints are perfect play.** `findBestMove` runs the exact solver from the
   current position and returns a move on a winning line, including a stock draw
   when that is what winning requires. Following hints repeatedly clears any
   board. After a move that has already lost the deal no winning line exists, and
   the hint falls back to the best legal move rather than telling the player the
   position is dead.
-- **Idle nudge.** After 90 seconds without a move the hint button lights up.
-  Opacity only — the tap target never moves.
+- **Idle nudge.** After 90 seconds without a move the hint button fills and
+  changes colour. Colour only — the tap target never moves, and the cue is not
+  an animation, so reduced motion does not suppress it.
 - **Sound.** Off/on from the speaker control; the choice is remembered across
   sessions (BR-06) and never appears in `stats`.
 - **Exit.** The app draws no chrome, so the game carries the only way out
@@ -99,7 +103,8 @@ console, and `qa.pause()`, `qa.resume()`, `qa.abort()` drive it. Overrides:
 ```bash
 npm run check          # typecheck + solver + catalogue + layout
 npm run check:levels   # all 180 deals solvable; hint-following clears every board
-npm run check:layout   # no two uncoverable-together cards have overlapping hit zones
+npm run check:layout   # no two uncoverable-together cards have overlapping hit
+                       # zones; the coach bubble stays inside the play bounds
 ```
 
 ## Deploying to S3

@@ -72,6 +72,22 @@ export function getCardHitRect(idx: number): Rect {
   };
 }
 
+// The coach bubble, in the controls band opposite the piles. Mirrors with the
+// text direction; the tutorial overlay derives its mirrored left from this.
+// `height` is a minimum — the bubble grows with the copy and the skip link, so
+// check-layout keeps the grown box inside PLAY_BOUNDS.
+export const BUBBLE_BOX = { x: 54, y: 252, w: 510, h: 122 };
+export const BUBBLE_MAX_H = 126;
+
+export function getBubbleRect(rtl: boolean, height = BUBBLE_MAX_H): Rect {
+  return {
+    left: rtl ? BUBBLE_BOX.x : FRAME_W - BUBBLE_BOX.x - BUBBLE_BOX.w,
+    top: BUBBLE_BOX.y,
+    width: BUBBLE_BOX.w,
+    height,
+  };
+}
+
 export function getStockPos(rtl: boolean) {
   return { left: rtl ? 720 : 54, top: 259 };
 }

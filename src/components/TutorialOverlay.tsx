@@ -4,7 +4,7 @@ import { useSession } from "@/context/SessionContext";
 import type { TKey } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 import {
-  FRAME_W, FRAME_H,
+  FRAME_W, FRAME_H, BUBBLE_BOX,
   getCardRect, getStockTapRect, getWasteRect,
   type Rect,
 } from "@/lib/layout";
@@ -26,7 +26,7 @@ const CUTOUT_RADIUS = 12;
 // All explanations live below the tableau (which ends at y=240), in the
 // controls space opposite the piles. Neither cards nor piles are covered.
 // This space mirrors; card connectors still use physical tableau geometry.
-const BUBBLE_BOX = { x: 54, y: 260, w: 510, h: 112 };
+// The rectangle itself lives in lib/layout so check-layout can assert it.
 
 const STEP_COPY: Record<Exclude<TutStep, "idle" | "done">, { n: number | null; action: TKey; rule: TKey }> = {
   intro:   { n: 1,    action: "tut.intro.action", rule: "tut.intro.rule" },
@@ -47,7 +47,7 @@ function pad(r: Rect, p: number): Rect {
   return { left: r.left - p, top: r.top - p, width: r.width + 2 * p, height: r.height + 2 * p };
 }
 
-export function TutorialOverlay({ onContinue, onDismiss, hintContinue = false }: { onContinue: () => void; onDismiss: () => void; hintContinue?: boolean }) {
+export function TutorialOverlay({ onContinue, onDismiss, onSkip, hintContinue = false }: { onContinue: () => void; onDismiss: () => void; onSkip: () => void; hintContinue?: boolean }) {
   const step = useTutorial((s) => s.step);
   const { t, translations, reducedMotion } = useSession();
   const rtl = translations?.dir === "rtl";
@@ -145,7 +145,7 @@ export function TutorialOverlay({ onContinue, onDismiss, hintContinue = false }:
       <div
         key={`bubble-${step}`}
         className={cn(
-          "absolute rounded-2xl shadow-lg px-4 py-3 text-slate-900 flex items-center gap-4",
+          "absolute rounded-2xl shadow-lg px-4 pt-3 pb-2 text-slate-900 flex flex-col justify-center gap-1",
           hasButton ? "pointer-events-auto" : "pointer-events-none",
           !reducedMotion && "animate-in fade-in duration-150"
         )}
@@ -166,28 +166,46 @@ export function TutorialOverlay({ onContinue, onDismiss, hintContinue = false }:
           </span>
         )}
 
-        <div id={TUT_BUBBLE_TEXT_ID} className="flex-1 min-w-0 text-[17px] leading-[22px]">
-          <div className="font-bold">{t(copy.action)}</div>
-          <div>{t(copy.rule)}</div>
+        <div className="flex items-center gap-4">
+          <div id={TUT_BUBBLE_TEXT_ID} className="flex-1 min-w-0 text-[17px] leading-[22px]">
+            <div className="font-bold">{t(copy.action)}</div>
+            <div>{t(copy.rule)}</div>
+          </div>
+
+          {hasButton && (
+            <div className="shrink-0 flex justify-center">
+              <button
+                ref={doneBtnRef}
+                type="button"
+                onClick={isIntro ? onContinue : onDismiss}
+                className={cn(
+                  "min-w-[150px] h-[58px] px-6 rounded-full font-bold text-[18px] text-slate-900 shadow active:scale-95 focus-visible:ring-4 focus-visible:ring-amber-500",
+                  hintContinue && "outline outline-4 outline-offset-4 outline-slate-900",
+                )}
+                style={{ background: GOLD }}
+                data-testid={isIntro ? "tutorial-next" : "tutorial-done"}
+                data-tut-interactive
+              >
+                {t(isIntro ? "tut.next" : "tut.done")}
+              </button>
+            </div>
+          )}
         </div>
 
-        {hasButton && (
-          <div className="shrink-0 flex justify-center">
-            <button
-              ref={doneBtnRef}
-              type="button"
-              onClick={isIntro ? onContinue : onDismiss}
-              className={cn(
-                "min-w-[150px] h-[58px] px-6 rounded-full font-bold text-[18px] text-slate-900 shadow active:scale-95 focus-visible:ring-4 focus-visible:ring-amber-500",
-                hintContinue && "outline outline-4 outline-offset-4 outline-slate-900",
-              )}
-              style={{ background: GOLD }}
-              data-testid={isIntro ? "tutorial-next" : "tutorial-done"}
-              data-tut-interactive
-            >
-              {t(isIntro ? "tut.next" : "tut.done")}
-            </button>
-          </div>
+        {/* A way out of every card. The final card already ends the tutorial
+            with its own button, so a second exit there would only confuse.
+            The bubble is pointer-transparent on gameplay steps, so this button
+            re-enables pointer events for itself. */}
+        {!isHandoff && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="pointer-events-auto self-start -ms-2 min-h-[36px] px-2 inline-flex items-center rounded-lg text-[15px] font-semibold text-slate-700 underline underline-offset-4 decoration-2 hover:text-slate-900 active:scale-95 focus-visible:ring-4 focus-visible:ring-amber-500"
+            data-testid="tutorial-skip"
+            data-tut-interactive
+          >
+            {t("tut.skip")}
+          </button>
         )}
       </div>
     </div>

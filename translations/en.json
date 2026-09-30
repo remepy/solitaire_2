@@ -67,6 +67,7 @@
     "tut.s3.action": "The new face-up card is a King (K)",
     "tut.s3.rule": "An Ace (A) also fits a King. Tap the Ace to place it on the King.",
     "tut.s4.action": "An Ace also connects to 2 — tap the 2",
-    "tut.s4.rule": "On an Ace, you can play a King or a 2. It works both ways: an Ace fits either."
+    "tut.s4.rule": "On an Ace, you can play a King or a 2. It works both ways: an Ace fits either.",
+    "tut.skip": "Skip tutorial"
   }
 }

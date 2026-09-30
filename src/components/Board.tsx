@@ -645,6 +645,7 @@ export function GameBoard() {
         <TutorialOverlay
           onContinue={useTutorial.getState().continueIntro}
           onDismiss={useTutorial.getState().dismissHandoff}
+          onSkip={useTutorial.getState().skip}
           hintContinue={hintTarget === "continue"}
         />
       </div>

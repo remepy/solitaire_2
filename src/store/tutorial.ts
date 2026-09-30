@@ -65,6 +65,11 @@ export interface TutorialState {
   continueIntro: () => void;
   /** Close the final explanation without waiting for the next play. */
   dismissHandoff: () => void;
+  /**
+   * Leave the tutorial from any step. The board's stage effect sees `done`
+   * and returns to the round, exactly as finishing it does.
+   */
+  skip: () => void;
   reset: () => void;
 }
 
@@ -79,6 +84,7 @@ export const useTutorial = create<TutorialState>((set) => ({
   reset: () => set({ step: "idle" }),
   continueIntro: () => set((s) => (s.step === "intro" ? { step: "step1" } : s)),
   dismissHandoff: () => set((s) => (s.step === "handoff" ? { step: "done" } : s)),
+  skip: () => set((s) => (s.step === "idle" || s.step === "done" ? s : { step: "done" })),
 }));
 
 // ---- Advance on game state, not on taps ----
