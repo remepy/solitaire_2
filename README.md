@@ -35,7 +35,7 @@ affects progression.
   board. After a move that has already lost the deal no winning line exists, and
   the hint falls back to the best legal move rather than telling the player the
   position is dead.
-- **Idle nudge.** After 90 seconds without a move the hint button pulses.
+- **Idle nudge.** After 90 seconds without a move the hint button lights up.
   Opacity only — the tap target never moves.
 - **Sound.** Off/on from the speaker control; the choice is remembered across
   sessions (BR-06) and never appears in `stats`.

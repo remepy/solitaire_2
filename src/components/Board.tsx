@@ -4,7 +4,8 @@ import { useGame, isAdjacent, computeUncovered } from "@/store/game";
 import { useSession } from "@/context/SessionContext";
 import type { TKey } from "@/lib/translations";
 import { cn } from "@/lib/utils";
-import { RotateCcw, Lightbulb, LogOut, Volume2, VolumeX } from "lucide-react";
+import { RotateCcw } from "lucide-react";
+import { BulbIcon, CloseIcon, HelpIcon, MusicIcon } from "./icons";
 import { RoundEndOverlay } from "./RoundEndOverlay";
 import { PortraitOverlay } from "./overlay/PortraitOverlay";
 import { useIsRotated } from "@/hooks/useIsRotated";
@@ -27,7 +28,7 @@ export function GameBoard() {
   const {
     t, translations, reducedMotion, paused, soundOn, toggleSound,
     requestExit, openTutorial, finishTutorial, noteHint,
-    roundIndex, levelIds, stage,
+    stage,
   } = useSession();
   const rtl = translations?.dir === "rtl";
   const sound = soundOn;
@@ -393,21 +394,27 @@ export function GameBoard() {
   // No pulse, movement or scale change: keep the tap target steady.
   const hintClass = "outline outline-4 outline-offset-4 outline-white";
   const controlsDim = guided ? "opacity-40" : "";
+  // Header controls. Icon-only and identically sized in every Cyan game, so a
+  // participant meets the same four glyphs in the same places all week.
+  const HEADER_ICON = 26;
+  const headerBtn =
+    "w-[46px] h-[46px] shrink-0 flex items-center justify-center rounded-full border border-border bg-secondary/60 text-secondary-foreground hover:bg-secondary transition-colors active:scale-95 pointer-events-auto disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary";
+
+  const hintDisabled = game.isWon || game.isLost;
+  // The idle cue is a colour and fill change rather than an animation, so it is
+  // shown to everyone: a reduced-motion setting must not cost a stuck player
+  // the only prompt that help exists.
+  const hintNudge = hintIdle;
   const hintButton = (
     <button
       onClick={withDebounce(handleHint)}
-      disabled={game.isWon || game.isLost}
-      className={cn(
-        "flex items-center justify-center gap-2 bg-secondary text-secondary-foreground font-semibold rounded-full hover:bg-secondary/80 transition-colors active:scale-95 pointer-events-auto disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary",
-        tutorialVisible ? "w-[100px] h-[44px]" : "w-[150px] h-[58px] z-[200]",
-        hintIdle && !reducedMotion && "hint-idle-flash",
-      )}
+      disabled={hintDisabled}
+      className={cn(headerBtn, hintNudge && "bg-primary text-primary-foreground border-primary")}
       aria-label={t("btn.hint")}
       data-testid="btn-hint"
       data-tut-interactive
     >
-      <Lightbulb className="w-5 h-5" />
-      <span>{t("btn.hint")}</span>
+      <BulbIcon filled={hintNudge} size={HEADER_ICON} color="currentColor" />
     </button>
   );
 
@@ -451,56 +458,62 @@ export function GameBoard() {
         inert={isPortrait ? true : undefined}
         onClick={onFrameClick}
       >
-        {/* During coaching, keep Hint outside the bubble covering the controls.
-            The strip itself stays pointer-transparent and above the dim mask. */}
+        {/* The strip stays pointer-transparent and above the coaching mask, so
+            Hint remains reachable while the tutorial bubble covers the board. */}
         <div className={cn(
-          "absolute top-0 inset-x-0 h-[46px] flex items-center justify-between px-[54px] pointer-events-none",
+          "absolute top-0 inset-x-0 h-[46px] flex flex-row items-center justify-between px-[54px] pointer-events-none",
           tutorialVisible ? "z-[500]" : "z-[200]",
         )}>
-          <button
-            onClick={withDebounce(gatedControl(requestTutorial))}
-            className={cn(
-              "h-[38px] px-4 flex items-center rounded-full text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:scale-95 pointer-events-auto",
-              controlsDim,
-              rejected === "controls" && !reducedMotion && "tut-wiggle",
-            )}
-            aria-label={t("btn.tutorial")}
-            aria-disabled={guided || undefined}
-            data-testid="btn-tutorial"
-            data-tut-interactive
-          >
-            {t("btn.tutorial")}
-          </button>
+          {/* The row follows the text direction, so in Hebrew (RTL) it reads,
+              left to right: exit, music, name, hint, help. English mirrors it. */}
+          <div className="flex flex-row items-center gap-3 shrink-0">
+            <button
+              onClick={withDebounce(gatedControl(requestTutorial))}
+              className={cn(
+                headerBtn,
+                controlsDim,
+                rejected === "controls" && !reducedMotion && "tut-wiggle",
+              )}
+              aria-label={t("btn.tutorial")}
+              aria-disabled={guided || undefined}
+              data-testid="btn-tutorial"
+              data-tut-interactive
+            >
+              <HelpIcon size={HEADER_ICON} color="currentColor" />
+            </button>
+            {hintButton}
+          </div>
 
-          <div className="flex items-center gap-2">
-            {!tutorialVisible && levelIds.length > 1 && (
-              <span className="text-sm font-semibold text-muted-foreground px-2" data-testid="hud-round">
-                {t("hud.roundOf", { n: roundIndex + 1, total: levelIds.length })}
-              </span>
-            )}
-            {tutorialVisible && hintButton}
+          <h1
+            className="flex-1 min-w-0 mx-3 text-center text-[17px] font-bold text-foreground truncate"
+            data-testid="game-title"
+          >
+            {t("title")}
+          </h1>
+
+          <div className="flex flex-row items-center gap-3 shrink-0">
             {/* Sound on/off. The choice is the participant's and is remembered
                 across sessions (BR-06); it never affects progression. */}
             <button
               onClick={toggleSound}
-              className="h-[38px] w-[38px] flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:scale-95 pointer-events-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              className={headerBtn}
               aria-label={t("btn.sound")}
               aria-pressed={soundOn}
               data-testid="btn-sound"
               data-tut-interactive
             >
-              {soundOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              <MusicIcon on={soundOn} size={HEADER_ICON} color="currentColor" />
             </button>
             {/* The host app draws no chrome, so the game must offer the only
                 way out of the activity (BR-07). */}
             <button
               onClick={requestExit}
-              className="h-[38px] w-[38px] flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors active:scale-95 pointer-events-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+              className={headerBtn}
               aria-label={t("btn.exit")}
               data-testid="btn-exit"
               data-tut-interactive
             >
-              <LogOut className={cn("w-5 h-5", rtl && "scale-x-[-1]")} />
+              <CloseIcon size={HEADER_ICON} color="currentColor" />
             </button>
           </div>
         </div>
@@ -610,7 +623,7 @@ export function GameBoard() {
           
           {/* Pills */}
           <div 
-            className="absolute top-1/2 -translate-y-1/2 flex items-center gap-6"
+            className="absolute top-1/2 -translate-y-1/2 flex items-center"
             style={{ insetInlineEnd: 54 }}
           >
             <button
@@ -625,8 +638,6 @@ export function GameBoard() {
               <RotateCcw className={cn("w-5 h-5", rtl && "scale-x-[-1]")} />
               <span>{t("btn.undo")}</span>
             </button>
-            
-            {!tutorialVisible && hintButton}
           </div>
         </div>
 

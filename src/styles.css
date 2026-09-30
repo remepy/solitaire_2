@@ -256,16 +256,6 @@
   animation: tut-wiggle 300ms ease-in-out;
 }
 
-/* After 90 seconds without a move the hint button pulses, reminding a stuck
-   player that help is there. Opacity only: the tap target never moves. */
-@keyframes hint-idle-flash {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
-}
-.hint-idle-flash {
-  animation: hint-idle-flash 1.4s ease-in-out infinite;
-}
-
 /* Rendered before session_start and after the activity ends. */
 .blank {
   position: fixed;
