@@ -219,16 +219,41 @@ export function GameBoard() {
   const [hintTarget, setHintTarget] = useState<TutTarget | "continue" | null>(null);
   const hintTimer = useRef<number | null>(null);
 
-  // After 90 seconds without a move the hint button flashes, so a player who
-  // is stuck is reminded that help exists rather than being left to stall.
+  // Idle nudge. 90 seconds after the last tap the hint button pulses twice,
+  // then twice more every 30 seconds for as long as the player stays idle. It
+  // is a reminder, not an alarm: a burst is short and the gap between bursts is
+  // long, so a player reading the board is not nagged by a permanent highlight.
+  // "Idle" means no pointerdown anywhere, not no legal move — a player tapping
+  // cards that do not match is thinking, not stuck.
   const IDLE_HINT_MS = 90_000;
-  const [hintIdle, setHintIdle] = useState(false);
+  const HINT_REPEAT_MS = 30_000;
+  const HINT_BURST_MS = 2_400; // two 1.2s fade cycles; see .hint-pulse
+  const [hintPulse, setHintPulse] = useState(false);
+  const [idleTick, setIdleTick] = useState(0);
   useEffect(() => {
-    setHintIdle(false);
-    if (paused || isPortrait || game.isWon || game.isLost) return;
-    const id = window.setTimeout(() => setHintIdle(true), IDLE_HINT_MS);
-    return () => window.clearTimeout(id);
-  }, [game.lastMove, game.originalDeal, paused, isPortrait, game.isWon, game.isLost]);
+    const bump = () => setIdleTick((n) => n + 1);
+    window.addEventListener("pointerdown", bump, true);
+    return () => window.removeEventListener("pointerdown", bump, true);
+  }, []);
+  useEffect(() => {
+    setHintPulse(false);
+    if (paused || isPortrait || tutorialVisible || game.isWon || game.isLost) return;
+    let repeat: number | undefined;
+    let off: number | undefined;
+    const burst = () => {
+      setHintPulse(true);
+      off = window.setTimeout(() => setHintPulse(false), HINT_BURST_MS);
+    };
+    const first = window.setTimeout(() => {
+      burst();
+      repeat = window.setInterval(burst, HINT_REPEAT_MS);
+    }, IDLE_HINT_MS);
+    return () => {
+      window.clearTimeout(first);
+      window.clearTimeout(off);
+      window.clearInterval(repeat);
+    };
+  }, [idleTick, game.originalDeal, paused, isPortrait, tutorialVisible, game.isWon, game.isLost]);
 
   const clearHint = () => {
     if (hintTimer.current !== null) {
@@ -249,7 +274,6 @@ export function GameBoard() {
 
   const showHint = (target: TutTarget | "continue", message: string) => {
     noteHint();
-    setHintIdle(false);
     setHintTarget(target);
     setAriaMsg(message);
     if (hintTimer.current !== null) clearTimeout(hintTimer.current);
@@ -401,20 +425,31 @@ export function GameBoard() {
     "w-[46px] h-[46px] shrink-0 flex items-center justify-center rounded-full border border-border bg-secondary/60 text-secondary-foreground hover:bg-secondary transition-colors active:scale-95 pointer-events-auto disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary";
 
   const hintDisabled = game.isWon || game.isLost;
-  // The idle cue is a colour and fill change rather than an animation, so it is
-  // shown to everyone: a reduced-motion setting must not cost a stuck player
-  // the only prompt that help exists.
-  const hintNudge = hintIdle;
+  // The highlight is a second, filled copy of the button that fades over the
+  // first, so both states keep their own contrast and nothing moves or resizes.
+  // Under reduced motion the same highlight is held steady for the length of a
+  // burst instead of fading: the cue survives, the animation does not.
   const hintButton = (
     <button
       onClick={withDebounce(handleHint)}
       disabled={hintDisabled}
-      className={cn(headerBtn, hintNudge && "bg-primary text-primary-foreground border-primary")}
+      className={cn(headerBtn, "relative")}
       aria-label={t("btn.hint")}
       data-testid="btn-hint"
       data-tut-interactive
     >
-      <BulbIcon filled={hintNudge} size={HEADER_ICON} color="currentColor" />
+      <BulbIcon filled={false} size={HEADER_ICON} color="currentColor" />
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute inset-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0",
+          hintPulse && (reducedMotion ? "opacity-100" : "hint-pulse"),
+        )}
+        data-testid="btn-hint-nudge"
+        data-pulsing={hintPulse ? "1" : undefined}
+      >
+        <BulbIcon filled size={HEADER_ICON} color="currentColor" />
+      </span>
     </button>
   );
 

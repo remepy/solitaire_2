@@ -38,9 +38,14 @@ affects progression.
   board. After a move that has already lost the deal no winning line exists, and
   the hint falls back to the best legal move rather than telling the player the
   position is dead.
-- **Idle nudge.** After 90 seconds without a move the hint button fills and
-  changes colour. Colour only — the tap target never moves, and the cue is not
-  an animation, so reduced motion does not suppress it.
+- **Idle nudge.** 90 seconds after the last tap the hint button pulses twice —
+  two 1.2s fade cycles — and then twice more every 30 seconds while the player
+  stays idle. Any pointerdown anywhere restarts the 90 seconds, so a player
+  reading the board is reminded rather than nagged. Opacity only: the tap target
+  never moves or resizes. Under reduced motion the same highlight is held steady
+  for the length of a burst instead of fading, so the cue survives the setting.
+  The timer does not run while the game is paused, in portrait, or during the
+  tutorial, and it restarts on resume.
 - **Sound.** Off/on from the speaker control; the choice is remembered across
   sessions (BR-06) and never appears in `stats`.
 - **Exit.** The app draws no chrome, so the game carries the only way out

@@ -256,6 +256,18 @@
   animation: tut-wiggle 300ms ease-in-out;
 }
 
+/* Idle nudge on the hint button: two fade cycles, repeated by the board every
+   30 seconds while the player stays idle. Opacity only — the tap target never
+   moves or changes size, and at roughly 0.8Hz the fade is far below any flash
+   threshold. Reduced motion holds the same highlight steady instead. */
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+.hint-pulse {
+  animation: hint-pulse 1200ms ease-in-out 2;
+}
+
 /* Rendered before session_start and after the activity ends. */
 .blank {
   position: fixed;
