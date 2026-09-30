@@ -10,7 +10,7 @@ import {
   type GameMessageType,
 } from "@/lib/bridge";
 import { dealForLevel, isKnownLevel, standaloneLevelIds } from "@/lib/levels";
-import { readSoundOn, readTutorialSeen, writeSoundOn, writeTutorialSeen } from "@/lib/preferences";
+import { readMusicOn, readTutorialSeen, writeMusicOn, writeTutorialSeen } from "@/lib/preferences";
 import { format, loadTranslations, type TKey, type Translations } from "@/lib/translations";
 import { useGame } from "@/store/game";
 
@@ -36,8 +36,8 @@ type SessionContextType = {
   isLastRound: boolean;
   reducedMotion: boolean;
   paused: boolean;
-  soundOn: boolean;
-  toggleSound: () => void;
+  musicOn: boolean;
+  toggleMusic: () => void;
   /** Set once the current round has ended; drives the round-end screen. */
   roundOutcome: RoundOutcome | null;
   nextRound: () => void;
@@ -70,12 +70,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [roundIndex, setRoundIndex] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [soundOn, setSoundOn] = useState(true);
+  const [musicOn, setMusicOn] = useState(true);
   const [roundOutcome, setRoundOutcome] = useState<RoundOutcome | null>(null);
 
   const stageRef = useRef<SessionStage>("loading");
   const bridgedRef = useRef(false);
-  const soundOnRef = useRef(true);
+  const musicOnRef = useRef(true);
   const translationsRef = useRef<Translations | null>(null);
   const levelIdsRef = useRef<string[]>([]);
   const roundIndexRef = useRef(0);
@@ -192,9 +192,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     loadTranslations()
       .then((tr) => {
         if (cancelled) return;
-        const storedSound = readSoundOn();
-        soundOnRef.current = storedSound;
-        setSoundOn(storedSound);
+        const storedMusic = readMusicOn();
+        musicOnRef.current = storedMusic;
+        setMusicOn(storedMusic);
         translationsRef.current = tr;
         applyDocumentLanguage(tr);
         setTranslations(tr);
@@ -282,11 +282,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reducedMotion]);
 
-  const toggleSound = useCallback(() => {
-    const next = !soundOnRef.current;
-    soundOnRef.current = next;
-    setSoundOn(next);
-    writeSoundOn(next);
+  const toggleMusic = useCallback(() => {
+    const next = !musicOnRef.current;
+    musicOnRef.current = next;
+    setMusicOn(next);
+    writeMusicOn(next);
   }, []);
 
   const requestExit = useCallback(() => {
@@ -329,8 +329,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         isLastRound: roundIndex === levelIds.length - 1,
         reducedMotion,
         paused,
-        soundOn,
-        toggleSound,
+        musicOn,
+        toggleMusic,
         roundOutcome,
         nextRound,
         finishSession,

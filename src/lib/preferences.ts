@@ -1,8 +1,8 @@
 // The only values the game persists on the device across sessions (BR-06,
-// spec revision C): the tutorial-seen flag and the participant's own sound
+// spec revision C): the tutorial-seen flag and the participant's own music
 // on/off choice. Nothing about progression is stored; the app owns that (BR-03).
 const TUTORIAL_SEEN_KEY = "solitaire.tutorialSeen";
-const SOUND_ON_KEY = "solitaire.soundOn";
+const MUSIC_ON_KEY = "solitaire.musicOn";
 
 export function readTutorialSeen(): boolean {
   try {
@@ -20,18 +20,18 @@ export function writeTutorialSeen(): void {
   }
 }
 
-/** Sound is on unless the player turned it off in an earlier session. */
-export function readSoundOn(): boolean {
+/** Music is on unless the player turned it off in an earlier session. */
+export function readMusicOn(): boolean {
   try {
-    return window.localStorage.getItem(SOUND_ON_KEY) !== "0";
+    return window.localStorage.getItem(MUSIC_ON_KEY) !== "0";
   } catch {
     return true;
   }
 }
 
-export function writeSoundOn(on: boolean): void {
+export function writeMusicOn(on: boolean): void {
   try {
-    window.localStorage.setItem(SOUND_ON_KEY, on ? "1" : "0");
+    window.localStorage.setItem(MUSIC_ON_KEY, on ? "1" : "0");
   } catch {
     // Storage unavailable: the choice lasts for this session only.
   }

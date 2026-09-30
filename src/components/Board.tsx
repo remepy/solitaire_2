@@ -5,6 +5,7 @@ import { useSession } from "@/context/SessionContext";
 import type { TKey } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 import { RotateCcw } from "lucide-react";
+import cardPlacedUrl from "@/assets/card-placed.mp3";
 import { BulbIcon, CloseIcon, HelpIcon, MusicIcon } from "./icons";
 import { RoundEndOverlay } from "./RoundEndOverlay";
 import { PortraitOverlay } from "./overlay/PortraitOverlay";
@@ -26,12 +27,12 @@ const TUT_TEXT_KEYS = {
 
 export function GameBoard() {
   const {
-    t, translations, reducedMotion, paused, soundOn, toggleSound,
+    t, translations, reducedMotion, paused, musicOn, toggleMusic,
     requestExit, openTutorial, finishTutorial, noteHint,
     stage,
   } = useSession();
   const rtl = translations?.dir === "rtl";
-  const sound = soundOn;
+  const audioOn = musicOn;
   const game = useGame();
   const isPortrait = useIsRotated();
   const tutStep = useTutorial((s) => s.step);
@@ -59,9 +60,33 @@ export function GameBoard() {
   
   // Audio refs
   const audioCtx = useRef<AudioContext | null>(null);
+  // The card sound is a recording, not a tone. Three players rotate so two
+  // quick plays overlap rather than the second cutting the first short.
+  const cardPool = useRef<HTMLAudioElement[] | null>(null);
+  const cardPoolAt = useRef(0);
+  const playCardSound = () => {
+    if (!audioOn) return;
+    try {
+      if (!cardPool.current) {
+        cardPool.current = Array.from({ length: 3 }, () => {
+          const a = new Audio(cardPlacedUrl);
+          a.preload = "auto";
+          a.volume = 0.9;
+          return a;
+        });
+      }
+      const pool = cardPool.current;
+      const audio = pool[cardPoolAt.current];
+      cardPoolAt.current = (cardPoolAt.current + 1) % pool.length;
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    } catch {
+      // Audio is a nicety: never let it break a move.
+    }
+  };
   
   const playSound = (type: "tap" | "win" | "lose" | "error") => {
-    if (!sound) return;
+    if (!audioOn) return;
     try {
       if (!audioCtx.current) {
         const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -142,6 +167,7 @@ export function GameBoard() {
       playSound("error");
     } else if (msg === "win") {
       setAriaMsg(t("end.wonTitle"));
+      playCardSound();
       playSound("win");
     } else if (msg === "lose") {
       setAriaMsg(t("a11y.noMoves"));
@@ -152,7 +178,7 @@ export function GameBoard() {
     } else if (msg.startsWith("play:")) {
       const code = msg.split(":")[1];
       setAriaMsg(t("a11y.played", { card: code })); 
-      playSound("tap");
+      playCardSound();
     } else if (msg.startsWith("draw:")) {
       const code = msg.split(":")[1];
       setAriaMsg(t("a11y.drew", { card: code }));
@@ -162,6 +188,7 @@ export function GameBoard() {
       playSound("tap");
     } else if (msg === "peak") {
       setAriaMsg(t("a11y.peak"));
+      playCardSound();
       playSound("win");
     }
     // A move and its next coaching step arrive together. Keep the full
@@ -175,7 +202,7 @@ export function GameBoard() {
     // two identical ones in a row. Listing lastAnnouncement/tutStep as well
     // would re-announce on unrelated renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.announceSeq, t, sound]);
+  }, [game.announceSeq, t, audioOn]);
   
   useEffect(() => {
     if (isPortrait) {
@@ -530,14 +557,14 @@ export function GameBoard() {
             {/* Sound on/off. The choice is the participant's and is remembered
                 across sessions (BR-06); it never affects progression. */}
             <button
-              onClick={toggleSound}
+              onClick={toggleMusic}
               className={headerBtn}
-              aria-label={t("btn.sound")}
-              aria-pressed={soundOn}
-              data-testid="btn-sound"
+              aria-label={t("btn.music")}
+              aria-pressed={musicOn}
+              data-testid="btn-music"
               data-tut-interactive
             >
-              <MusicIcon on={soundOn} size={HEADER_ICON} color="currentColor" />
+              <MusicIcon on={musicOn} size={HEADER_ICON} color="currentColor" />
             </button>
             {/* The host app draws no chrome, so the game must offer the only
                 way out of the activity (BR-07). */}

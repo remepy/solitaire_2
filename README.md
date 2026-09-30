@@ -15,7 +15,7 @@ full-window inside the app's WebView.
 | Rounds per session | 2 |
 | `level_completed` | `outcome` is `won` or `lost`; `stats` is empty |
 | `game_finished` | `stats: { wins, rounds }` |
-| Stored on the device | `solitaire.tutorialSeen`, `solitaire.soundOn` (BR-06) |
+| Stored on the device | `solitaire.tutorialSeen`, `solitaire.musicOn` (BR-06) |
 
 The app sends two consecutive ids and owns the pointer (BR-03). A lost round is
 a completed round (BR-02) — `outcome` is reported for statistics only and never
@@ -32,6 +32,14 @@ affects progression.
   device. Every card except the last carries a skip link, which returns to the
   round and marks the tutorial seen; the last card already ends it with "Got
   it".
+- **Audio.** One looping background track and a recorded card sound; the rest
+  of the effects are short synthesised tones. The music-note control in the
+  header governs all of it, defaults to on, and the choice is the only thing
+  besides the tutorial flag kept across sessions (BR-06). The track fades in
+  and out to silence, so `loop` needs no crossfade. A WebView refuses autoplay
+  until the participant touches the page, so the first gesture starts the
+  track if the initial `play()` was refused. Music stops on `pause` and on
+  exit, abort and error, because the component unmounts with the session.
 - **Hints are perfect play.** `findBestMove` runs the exact solver from the
   current position and returns a move on a winning line, including a stock draw
   when that is what winning requires. Following hints repeatedly clears any

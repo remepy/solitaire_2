@@ -22,7 +22,7 @@ export const REQUIRED_KEYS = [
   "btn.hint",
   "btn.nextRound",
   "btn.playAgain",
-  "btn.sound",
+  "btn.music",
   "btn.tutorial",
   "btn.undo",
   "card.name",
