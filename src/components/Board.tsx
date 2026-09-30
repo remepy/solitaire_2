@@ -5,7 +5,6 @@ import { useSession } from "@/context/SessionContext";
 import type { TKey } from "@/lib/translations";
 import { cn } from "@/lib/utils";
 import { RotateCcw } from "lucide-react";
-import cardPlacedUrl from "@/assets/card-placed.mp3";
 import { BulbIcon, CloseIcon, HelpIcon, MusicIcon } from "./icons";
 import { RoundEndOverlay } from "./RoundEndOverlay";
 import { PortraitOverlay } from "./overlay/PortraitOverlay";
@@ -32,7 +31,6 @@ export function GameBoard() {
     stage,
   } = useSession();
   const rtl = translations?.dir === "rtl";
-  const audioOn = musicOn;
   const game = useGame();
   const isPortrait = useIsRotated();
   const tutStep = useTutorial((s) => s.step);
@@ -57,82 +55,6 @@ export function GameBoard() {
     const id = setTimeout(() => setRejected(null), 350);
     return () => clearTimeout(id);
   }, [rejected]);
-  
-  // Audio refs
-  const audioCtx = useRef<AudioContext | null>(null);
-  // The card sound is a recording, not a tone. Three players rotate so two
-  // quick plays overlap rather than the second cutting the first short.
-  const cardPool = useRef<HTMLAudioElement[] | null>(null);
-  const cardPoolAt = useRef(0);
-  const playCardSound = () => {
-    if (!audioOn) return;
-    try {
-      if (!cardPool.current) {
-        cardPool.current = Array.from({ length: 3 }, () => {
-          const a = new Audio(cardPlacedUrl);
-          a.preload = "auto";
-          a.volume = 0.9;
-          return a;
-        });
-      }
-      const pool = cardPool.current;
-      const audio = pool[cardPoolAt.current];
-      cardPoolAt.current = (cardPoolAt.current + 1) % pool.length;
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
-    } catch {
-      // Audio is a nicety: never let it break a move.
-    }
-  };
-  
-  const playSound = (type: "tap" | "win" | "lose" | "error") => {
-    if (!audioOn) return;
-    try {
-      if (!audioCtx.current) {
-        const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        audioCtx.current = new Ctor();
-      }
-      const ctx = audioCtx.current;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      if (type === "tap") {
-        osc.frequency.setValueAtTime(400, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.1);
-      } else if (type === "error") {
-        osc.frequency.setValueAtTime(200, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.15);
-      } else if (type === "lose") {
-        osc.frequency.setValueAtTime(320, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.35);
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.35);
-      } else if (type === "win") {
-        osc.frequency.setValueAtTime(400, ctx.currentTime);
-        osc.frequency.setValueAtTime(600, ctx.currentTime + 0.1);
-        osc.frequency.setValueAtTime(800, ctx.currentTime + 0.2);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.5);
-      }
-    } catch {
-      // Audio is a nicety: a blocked or unavailable AudioContext must never
-      // interrupt play.
-    }
-  };
   
   // The session decides the stage; entering "tutorial" deals the scripted deal.
   useEffect(() => {
@@ -164,32 +86,22 @@ export function GameBoard() {
     const msg = game.lastAnnouncement;
     if (msg === "illegal") {
       setAriaMsg(t("a11y.illegal"));
-      playSound("error");
     } else if (msg === "win") {
       setAriaMsg(t("end.wonTitle"));
-      playCardSound();
-      playSound("win");
     } else if (msg === "lose") {
       setAriaMsg(t("a11y.noMoves"));
-      playSound("lose");
     } else if (msg === "undo") {
       setAriaMsg(t("a11y.undo"));
-      playSound("tap");
     } else if (msg.startsWith("play:")) {
       const code = msg.split(":")[1];
       setAriaMsg(t("a11y.played", { card: code })); 
-      playCardSound();
     } else if (msg.startsWith("draw:")) {
       const code = msg.split(":")[1];
       setAriaMsg(t("a11y.drew", { card: code }));
-      playSound("tap");
     } else if (msg === "wild") {
       setAriaMsg(t("a11y.wild"));
-      playSound("tap");
     } else if (msg === "peak") {
       setAriaMsg(t("a11y.peak"));
-      playCardSound();
-      playSound("win");
     }
     // A move and its next coaching step arrive together. Keep the full
     // instruction in the live region rather than overwriting it with "Played".
@@ -202,7 +114,7 @@ export function GameBoard() {
     // two identical ones in a row. Listing lastAnnouncement/tutStep as well
     // would re-announce on unrelated renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.announceSeq, t, audioOn]);
+  }, [game.announceSeq, t]);
   
   useEffect(() => {
     if (isPortrait) {
@@ -308,7 +220,6 @@ export function GameBoard() {
       hintTimer.current = null;
       setHintTarget(null);
     }, 2500);
-    playSound("tap");
   };
 
   const handleHint = () => {
@@ -382,7 +293,6 @@ export function GameBoard() {
       showHint("stock", t("a11y.noMoves"));
     } else {
       setAriaMsg(t("a11y.noMoves"));
-      playSound("error");
     }
   };
   
@@ -402,7 +312,6 @@ export function GameBoard() {
   // the allowed target gets rejection feedback and never reaches the game.
   const rejectTap = (what: TutTarget | "controls") => {
     setRejected(what);
-    playSound("error");
   };
   const gated = (target: TutTarget, fn: () => void) => () => {
     if (guided && !isAllowed(tutStep, target)) return rejectTap(target);

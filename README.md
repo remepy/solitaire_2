@@ -32,14 +32,15 @@ affects progression.
   device. Every card except the last carries a skip link, which returns to the
   round and marks the tutorial seen; the last card already ends it with "Got
   it".
-- **Audio.** One looping background track and a recorded card sound; the rest
-  of the effects are short synthesised tones. The music-note control in the
-  header governs all of it, defaults to on, and the choice is the only thing
-  besides the tutorial flag kept across sessions (BR-06). The track fades in
-  and out to silence, so `loop` needs no crossfade. A WebView refuses autoplay
-  until the participant touches the page, so the first gesture starts the
-  track if the initial `play()` was refused. Music stops on `pause` and on
-  exit, abort and error, because the component unmounts with the session.
+- **Audio.** One looping background track and nothing else — there are no
+  sound effects, and every event that once had one still has its visual cue
+  and its live-region announcement. The music-note control in the header
+  governs the track, defaults to on, and the choice is the only thing besides
+  the tutorial flag kept across sessions (BR-06). The track fades in and out
+  to silence, so `loop` needs no crossfade. A WebView refuses autoplay until
+  the participant touches the page, so the first gesture starts the track if
+  the initial `play()` was refused. Music stops on `pause` and on exit, abort
+  and error, because the component unmounts with the session.
 - **Hints are perfect play.** `findBestMove` runs the exact solver from the
   current position and returns a move on a winning line, including a stock draw
   when that is what winning requires. Following hints repeatedly clears any
