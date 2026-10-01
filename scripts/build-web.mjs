@@ -19,7 +19,7 @@ if (!requested.length) rmSync("dist", { recursive: true, force: true });
 rmSync(join("public", "translations.json"), { force: true }); // dev-only copy
 
 for (const lang of langs) {
-  const outDir = join("dist", "games", GAME_ID, lang);
+  const outDir = join("dist", GAME_ID, lang);
   console.log(`\n▶ Building ${GAME_ID}/${lang} → ${outDir}`);
   execFileSync("npx", ["vite", "build"], {
     stdio: "inherit",
